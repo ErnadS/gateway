@@ -1,0 +1,32 @@
+#! /bin/sh 
+#
+# This is init for Elreg
+
+thttpd=/usr/sbin/thttpd
+
+test -x "$thttpd" || exit 0
+
+case "$1" in
+  start)
+    echo -n "Init Gateway"
+    /etc/init.d/networking stop
+    sleep 1
+    /etc/init.d/networking start
+    echo -n "Init Elreg CAN driver"
+    insmod /tmp/SJA1000driver.ko
+    mount /dev/pts
+    /tmp/gatewayAT91SAM&
+    echo "Elreg Init FINISH."
+    ;;
+stop)
+    echo -n "Stopping Elreg not implemented"
+    ;;
+reload|force-reload)
+    echo -n "Elreg reload not implemented"
+    ;;
+restart)
+    echo -n "Elreg restart not implemented"
+   ;;
+
+esac
+exit 0

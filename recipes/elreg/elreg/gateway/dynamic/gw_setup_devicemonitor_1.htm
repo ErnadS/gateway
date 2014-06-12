@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+
+<script type="text/javascript">
+var t;
+var timer_is_on=0;
+var xmlhttp;
+
+window.onload = loadGW_DM; 
+
+function loadGW_DM()
+{
+	setParamsGW_DM('cgi-bin/cgiCommonData',"r");
+}
+
+function setParamsGW_DM(url, command){
+	if (window.XMLHttpRequest){
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	xmlhttp.open("POST",url,true);
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			updatepageGW_DM(xmlhttp.responseXML);
+		}
+	}
+
+	if (command == "r")
+		xmlhttp.send("comm=" + command + "&formID=gw_dm&canID=122211&loginID=22222&END=2");
+	else {
+	
+
+				 

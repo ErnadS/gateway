@@ -1,0 +1,18 @@
+/*
+ * gwPass.h
+ *
+ *  Created on: 21. apr. 2010
+ *      Author: Ernad
+ */
+
+#ifndef GWPASS_H_
+#define GWPASS_H_
+
+typedef struct {
+	char lpass1[40];
+	char lpass2[40];
+	char apass1[40];
+	char apass2[40];
+} GW_PASS;
+
+#endif /* GWPASS_H_ */

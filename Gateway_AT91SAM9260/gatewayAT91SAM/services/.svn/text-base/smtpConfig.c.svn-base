@@ -1,0 +1,164 @@
+/*
+ * mailConfig.c
+ *
+ *  Created on: 8. apr. 2010
+ *      Author: Ernad
+ */
+
+/*
+ # The person who gets all mail for userids < 1000
+ root=user@example.com
+
+ AuthUser=username
+ AuthPass=password
+
+ #SMTP server
+ mailhub=smtp.domeneshop.no:25
+
+ # Where will the mail seem to come from?
+ rewriteDomain=example.com  //mail from username@example.com
+
+ #The hostname is the machine's name
+ hostname=hostname.domain
+
+ FromLineOverride=YES
+
+ UseTLS=YES
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "smtpConfig.h"
+#include "../utility/paramUtil.h"
+#include "../config.h"
+
+int smtpConfig_updateStruct(char* bufferRec, SSMTP* pssmtpStruct);
+
+char smtpConfig_save(SSMTP ssmtp) {
+	char chTemp[10];
+
+	FILE * hFile;
+	hFile = fopen(SMTP_CONFIG_PATH, "w");
+	if (hFile == NULL) {
+		return 0;
+	}
+
+	//fputs("root=noratel.imed.secure@elreg.eu", hFile);
+	//fputs("\n", hFile);
+
+	fputs("mailhub=", hFile);
+	fputs(ssmtp.smtpAddress, hFile);
+	sprintf(chTemp, ":%d", ssmtp.port);
+	fputs(chTemp, hFile);
+	fputs("\n", hFile);
+
+	//fputs("hostname=testHostName", hFile);
+	//fputs("\n", hFile);
+
+	if (strlen(ssmtp.sender) > 0) {
+		fputs("rewriteDomain=", hFile);
+		sprintf(chTemp, "%s", ssmtp.sender);
+		fputs(chTemp, hFile);
+		fputs("\n", hFile);
+	}
+
+	//fputs("FromLineOverride=\"NO\"\n", hFile);
+
+
+	if (ssmtp.user != 0 && ssmtp.pass != 0) {
+		fputs("AuthUser=", hFile);
+		fputs(ssmtp.user, hFile);
+		fputs("\n", hFile);
+
+		fputs("AuthPass=", hFile);
+		fputs(ssmtp.pass, hFile);
+		fputs("\n", hFile);
+	}
+
+	fclose(hFile);
+
+	return 1;
+}
+
+char smtpConfig_read(SSMTP* ssmtp) {
+	int i = 0;
+	int maxSize = 1000;
+	char buff[maxSize];
+
+	FILE * hFile;
+	hFile = fopen(SMTP_CONFIG_PATH, "r");
+	if (hFile == NULL) {
+		return 0;
+	}
+
+	int c;
+	while ((c = fgetc(hFile)) != EOF && i < maxSize) {
+		buff[i++] = (char) c;
+	}
+	buff[i] = 0;
+
+	smtpConfig_updateStruct(buff, ssmtp);
+
+	fclose(hFile);
+	return 1;
+}
+
+int smtpConfig_updateStruct(char* bufferRec, SSMTP* pssmtpStruct) {
+	int nLength = 0;
+	int buffRecPos = 0;
+	char paramName[MAX_PARAM_NAME_LENGTH];
+	char paramValue[MAX_PARAM_VALUE_LENGTH];
+
+	while (1) {
+		nLength = paramUtil_getNextParam(&bufferRec[buffRecPos], "\n",
+				paramName, paramValue);
+		// !!! TRIM
+		if (nLength < 0)
+			break; // TODO: return -1 ???
+
+		if (strcmp(paramName, "mailhub") == 0) {
+			int nPort;
+
+			char *sepPointer = strstr(paramValue, ":");
+			if (sepPointer == NULL) {
+				nPort = 25;
+				strcpy(pssmtpStruct->smtpAddress, paramValue);
+			} else {
+				int nSepPos = sepPointer - paramValue;
+				nPort = atoi(sepPointer + 1);
+				memcpy(&(pssmtpStruct->smtpAddress), paramValue, nSepPos); // copy smtpAddress
+				pssmtpStruct->smtpAddress[nSepPos] = 0; // null terminate smtpAddress
+			}
+			pssmtpStruct->port = nPort;
+		} else if (strcmp(paramName, "rewriteDomain") == 0) {
+			memcpy(&(pssmtpStruct->sender), paramValue,
+					sizeof(pssmtpStruct->sender));
+		} else if (strcmp(paramName, "AuthUser") == 0) {
+			memcpy(&(pssmtpStruct->user), paramValue,
+					sizeof(pssmtpStruct->user));
+		} else if (strcmp(paramName, "AuthPass") == 0) {
+			memcpy(&(pssmtpStruct->pass), paramValue,
+					sizeof(pssmtpStruct->pass));
+		}
+
+		if (nLength == 0)
+			break;
+		buffRecPos += nLength;
+	}
+
+	return 1;
+}
+
+void smtpConfig_clearStruct(SSMTP* pssmtpStruct) {
+	//memset(pssmtpStruct->smtpAddress, 0, sizeof(pssmtpStruct->smtpAddress));
+	pssmtpStruct->smtpAddress[0] = 0;
+	//memset(pssmtpStruct->sender, 0, sizeof(pssmtpStruct->sender));
+	pssmtpStruct->sender[0] = 0;
+	pssmtpStruct->pass[0] = 0;
+	//memset(pssmtpStruct->pass, 0, sizeof(pssmtpStruct->pass));
+	pssmtpStruct->user[0] = 0;
+	//memset(pssmtpStruct->user, 0, sizeof(pssmtpStruct->user));
+	pssmtpStruct->port = 587;
+}
+

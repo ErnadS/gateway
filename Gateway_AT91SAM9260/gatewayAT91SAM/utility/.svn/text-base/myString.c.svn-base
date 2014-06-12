@@ -1,0 +1,80 @@
+/*
+ * myString.c
+ *
+ *  Created on: 23. apr. 2010
+ *      Author: Ernad
+ */
+
+#include <string.h>
+#include <stdio.h>
+int nameStartsWith(char * string1, char* string2) {
+	char* str1 = string1;
+	char* str2 = string2;
+
+	while(*str1 != 0 && *str2 != 0) {
+		if (*str1 != *str2)
+			return -1;
+		str1++;
+		str2++;
+	}
+
+	return 0;
+}
+
+
+char myString_validateString(char* string1) {
+	int i;
+	if (string1 == 0) {
+		string1[0] = '?';
+		string1[1] = 0;
+		return -1;
+	}
+	printf("string before val. %s\n", string1);
+	unsigned int nLen = strlen(string1);
+	if (nLen < 1) {
+		string1[0] = '?';
+		string1[1] = 0;
+		return 1;
+	}
+	if (nLen > 23)
+		nLen = 23;
+
+	for (i = 0; i < nLen; i++) {
+		if (!((string1[i] >= 'A' && string1[i] <= 'Z') || (string1[i] >= 'a' && string1[i] <= 'z') ||
+				(string1[i] >= ',' && string1[i] <= '9') || string1[i] == ':' || string1[i] == ' '))
+						//|| string1[i] == 'æ' || string1[i] == 'ø' || string1[i] == 'å'
+						//		|| string1[i] == 'Æ' || string1[i] == 'Ø' || string1[i] == 'Å'))
+			string1[i] = '?';
+
+	}
+	string1[nLen] = 0;
+	return 0; // OK
+}
+char myString_validateString2(char* string1) {
+	int i;
+	if (string1 == 0) {
+		string1[0] = '?';
+		string1[1] = 0;
+		return -1;
+	}
+	printf("string before val. %s\n", string1);
+	unsigned int nLen = strlen(string1);
+	if (nLen < 1) {
+		string1[0] = '?';
+		string1[1] = 0;
+		return 1;
+	}
+	if (nLen > 59)
+		nLen = 59;
+
+	for (i = 0; i < nLen; i++) {
+		if (!((string1[i] >= 'A' && string1[i] <= 'Z') || (string1[i] >= 'a' && string1[i] <= 'z') ||
+				(string1[i] >= ',' && string1[i] <= '9') || string1[i] == ':' || string1[i] == ' '))
+						//|| string1[i] == 'æ' || string1[i] == 'ø' || string1[i] == 'å'
+						//		|| string1[i] == 'Æ' || string1[i] == 'Ø' || string1[i] == 'Å'))
+			string1[i] = '?';
+
+	}
+	string1[nLen] = 0;
+	return 0; // OK
+}

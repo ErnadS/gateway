@@ -1,0 +1,19 @@
+/*
+ * dataLogerLogic.h
+ *
+ *  Created on: 19. mai 2010
+ *      Author: Ernad
+ */
+
+#ifndef DATALOGERLOGIC_H_
+#define DATALOGERLOGIC_H_
+
+extern char * messageTextTg[];
+extern char * messageTextSw[];
+
+void dataLogerLogic_init(void);
+void dataLogerLogic_checkTimers(void);
+int dataLogerLogic_getExcel(int nCanAddress, int nMsgId, char* bufferXML);
+void dataLogerLogic_removeCanID(int id);
+
+#endif /* DATALOGERLOGIC_H_ */

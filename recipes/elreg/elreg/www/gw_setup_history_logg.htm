@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+<script type="text/javascript" src="cooltreepro_uncompressed.js"></script>
+<script type="text/javascript" src="tree_format.js"></script>
+<script type="text/javascript" src="/cgi-bin/cgiLeftMenu"></script>
+<script type="text/javascript" src="tree_format_setup.js"></script>
+<script type="text/javascript" src="popUps.js"></script>
+
+
+
+		
+
+
+<!--[if lte IE 6]>
+<style type="text/css" media="screen, projection, tv">
+#wrapper {
+	height: expression( (document.body.clientHeight) ? document.body.clientHeight * 0.9 + 'px' : document.documentElement.clientHeight * 0.9 + 'px' );
+}
+
+#nav {
+	height: expression( document.all.wrapper.offsetHeight + 'px' );
+}
+
+#content {
+	height: expression( document.all.wrapper.offsetHeight + 'px' );
+}
+</style>
+<![endif]-->
+
+<meta http-equiv="Page-Enter" content="blendTrans(Duration=2)"/>
+<meta http-equiv="Site-Exit" content="blendTrans(Duration=5)"/>
+</head>
+
+<body>
+
+
+<div id="wrapper">
+<!--<p id="headline">&copy; ImedSecure.</p>-->
+<div id="header">
+<script type="text/javascript" src="header.js"></script>
+</div>
+<div id="content">
+
+<!--	  GateWay alarm history logg setup -->
+
+<table id="mytable" cellspacing="0">
+<caption><img src="images/page_white_wrench.png" width="16" height="16" alt="" align="top" />    Gateway alarm history logg      </caption>
+<form action="/cgi-bin/mycgi.cgi">
+<table class="title"><tr><td>History logg</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">Clear logg</th><td><input type="checkbox" class="nobg" name=""></td><tr>
+		</table>  
+
+
+
+<div id="contentfooter" style="padding-left:30px;">	
+<input type=submit value="Clear" title="Clear history logg"class="btn" onmouseover='this.className="btn btnhov"' onmouseout='this.className="btn"'>
+</div>	
+</form>	
+</table>
+</div><!-- content -->
+
+
+<div id="menu">
+<script type="text/javascript">
+var tree1 = new COOLjsTreePRO("tree1", TREE_NODES, TREE_FORMAT);
+tree1.init();
+</script>
+</div>
+
+<div id="footer">
+<script type="text/javascript" src="footer.js"></script>
+</div>
+</div><!-- wrapper -->
+</body>
+</html>
+
+
+

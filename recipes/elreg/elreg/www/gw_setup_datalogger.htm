@@ -1,0 +1,480 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+
+<script type="text/javascript">
+var t;
+var timer_is_on=0;
+var xmlhttp;
+
+window.onload = loadGW_DL; 
+
+function loadGW_DL()
+{
+	setParamsGW_DL('cgi-bin/cgiCommonData',"r");
+}
+
+function writeGW_DL()
+{
+	setParamsGW_PS('cgi-bin/cgiCommonData',"w");
+}
+
+
+
+function setParamsGW_DL(url, command){ 
+	var temp;
+	var selected = new Array();
+
+	if (window.XMLHttpRequest){
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	xmlhttp.open("POST",url,true);
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			updatepageGW_DL(xmlhttp.responseXML);
+		}
+	}
+
+	if (command == "r")
+		xmlhttp.send("comm=" + command + "&formID=gw_dl&canID=122211&loginID=22222&END=2");
+	else { 
+		var selText;
+		selText = document.form_gwDL.DATALOGGER1.options[document.form_gwDL.DATALOGGER1.selectedIndex].value;
+		selected[0] = parseInt(selText.substring(5));
+		if (selected[0] < 0 || isNaN(selected[0]))
+			selected[0] = 0;
+			
+		selText = document.form_gwDL.DATALOGGER2.options[document.form_gwDL.DATALOGGER2.selectedIndex].value;
+		selected[1] = parseInt(selText.substring(5));
+		if (selected[1] < 0 || isNaN(selected[1]))
+			selected[1] = 0;
+			
+		selText = document.form_gwDL.DATALOGGER3.options[document.form_gwDL.DATALOGGER3.selectedIndex].value;
+		selected[2] = parseInt(selText.substring(5));
+		if (selected[2] < 0 || isNaN(selected[2]))
+			selected[2] = 0;
+			
+		selText = document.form_gwDL.DATALOGGER4.options[document.form_gwDL.DATALOGGER4.selectedIndex].value;
+		selected[3] = parseInt(selText.substring(5));
+		if (selected[3] < 0 || isNaN(selected[3]))
+			selected[3] = 0;
+		/*	
+		selText = document.form_gwDL.DATALOGGER5.options[document.form_gwDL.DATALOGGER5.selectedIndex].value;
+		selected[4] = parseInt(selText.substring(5));
+		if (selected[4] < 0 || isNaN(selected[4]))
+			selected[4] = 0;
+			
+		selText = document.form_gwDL.DATALOGGER6.options[document.form_gwDL.DATALOGGER6.selectedIndex].value;
+		selected[5] = parseInt(selText.substring(5));
+		if (selected[5] < 0 || isNaN(selected[5]))
+			selected[5] = 0;
+			
+		selText = document.form_gwDL.DATALOGGER7.options[document.form_gwDL.DATALOGGER7.selectedIndex].value;
+		selected[6] = parseInt(selText.substring(5));
+		if (selected[6] < 0 || isNaN(selected[6]))
+			selected[6] = 0;
+			
+		selText = document.form_gwDL.DATALOGGER8.options[document.form_gwDL.DATALOGGER8.selectedIndex].value;
+		selected[7] = parseInt(selText.substring(5));
+		if (selected[7] < 0 || isNaN(selected[7]))
+			selected[7] = 0;
+			
+		selText = document.form_gwDL.DATALOGGER9.options[document.form_gwDL.DATALOGGER9.selectedIndex].value;
+		selected[8] = parseInt(selText.substring(5));
+		if (selected[8] < 0 || isNaN(selected[8]))
+			selected[8] = 0;
+			
+		selText = document.form_gwDL.DATALOGGER10.options[document.form_gwDL.DATALOGGER10.selectedIndex].value;
+		selected[9] = parseInt(selText.substring(5));
+		if (selected[9] < 0 || isNaN(selected[9]))
+			selected[9] = 0;
+	*/
+	
+	xmlhttp.send("comm=" + command + "&formID=gw_dl&canID=122211&loginID=22222&END=2" +
+			"&adr1=" + selected[0] +  "&msid1="  + document.form_gwDL.OPTIONS1.selectedIndex  +  "&chan1="  + 	document.form_gwDL.TRIG1.selectedIndex  +  "&per1=" + document.form_gwDL.PERIOD1.selectedIndex + 	 
+			"&adr2=" + selected[1] +  "&msid2="  + document.form_gwDL.OPTIONS2.selectedIndex  +  "&chan2="  + 	document.form_gwDL.TRIG2.selectedIndex  +  "&per2=" + document.form_gwDL.PERIOD2.selectedIndex + 	 
+			"&adr3=" + selected[2] +  "&msid3="  + document.form_gwDL.OPTIONS3.selectedIndex  +  "&chan3="  + 	document.form_gwDL.TRIG3.selectedIndex  +  "&per3=" + document.form_gwDL.PERIOD3.selectedIndex +  
+			"&adr4=" + selected[3] +  "&msid4="  + document.form_gwDL.OPTIONS4.selectedIndex  +  "&chan4="  +	document.form_gwDL.TRIG4.selectedIndex  +  "&per4=" + document.form_gwDL.PERIOD4.selectedIndex); /* + 	 
+			"&adr5=" + selected[4] +  "&msid5="  + document.form_gwDL.OPTIONS5.selectedIndex  +  "&chan5="  + 	document.form_gwDL.TRIG5.selectedIndex  +  "&per5=" + document.form_gwDL.PERIOD5.selectedIndex + 	 
+			"&adr6=" + selected[5] +  "&msid6="  + document.form_gwDL.OPTIONS6.selectedIndex  +  "&chan6="  + 	document.form_gwDL.TRIG6.selectedIndex  +  "&per6=" + document.form_gwDL.PERIOD6.selectedIndex + 	 
+			"&adr7=" + selected[6] +  "&msid7="  + document.form_gwDL.OPTIONS7.selectedIndex  +  "&chan7="  + 	document.form_gwDL.TRIG7.selectedIndex  +  "&per7=" + document.form_gwDL.PERIOD7.selectedIndex + 	 
+			"&adr8=" + selected[7] +  "&msid8="  + document.form_gwDL.OPTIONS8.selectedIndex  +  "&chan8="  + 	document.form_gwDL.TRIG8.selectedIndex  +  "&per8=" + document.form_gwDL.PERIOD8.selectedIndex + 	 
+			"&adr9=" + selected[8] +  "&msid9="  + document.form_gwDL.OPTIONS9.selectedIndex  +  "&chan9="  + 	document.form_gwDL.TRIG9.selectedIndex  +  "&per9=" + document.form_gwDL.PERIOD9.selectedIndex +	 
+			"&adr10=" + selected[9] +  "&msid10="  + document.form_gwDL.OPTIONS10.selectedIndex  +  "&chan10="  + 	document.form_gwDL.TRIG10.selectedIndex  +  "&per10=" + document.form_gwDL.PERIOD10.selectedIndex);*/
+	
+	document.form_gwDL.DATALOGGER1.selectedIndex = 0;
+	document.form_gwDL.DATALOGGER2.selectedIndex = 0;
+	document.form_gwDL.DATALOGGER3.selectedIndex = 0;
+	document.form_gwDL.DATALOGGER4.selectedIndex = 0;
+	/*document.form_gwDL.DATALOGGER5.selectedIndex = 0;
+	document.form_gwDL.DATALOGGER6.selectedIndex = 0;
+	document.form_gwDL.DATALOGGER7.selectedIndex = 0;
+	document.form_gwDL.DATALOGGER8.selectedIndex = 0;
+	document.form_gwDL.DATALOGGER9.selectedIndex = 0;
+	document.form_gwDL.DATALOGGER10.selectedIndex = 0;*/
+
+	}
+}
+
+////////////////////////////////////////////////////////////////////////
+// set this as parents "onchange" event 
+// Example:
+// <select name="DATALOGGER1" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS1)">
+// or
+// <select name="DATALOGGER2" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS2)">
+////////////////////////////////////////////////////////////////////////
+function onChangedParentCombobox(parentObject, child1, child2, child3) {
+	
+	updateChildsElements(parentObject, child1, child2, child3);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+// call this also from "onLoad" e.g. when received parameters from server
+// Example:
+// updateChildsElements(document.form_gwDL.OPTIONS1, 3);  // fyll "OPTIONS" with messages[3]
+///////////////////////////////////////////////////////////////////////////////////////////////
+function updateChildsElements(parentObject, child1, child2, child3){
+	child1.options.length= 0; //remove all;
+
+	if (parentObject.selectedIndex < 0)
+		return;
+	else if (parentObject.selectedIndex == 0) {
+		child1.selectedIndex = 0;
+		child2.selectedIndex = 0;
+		child3.selectedIndex = 0;
+	}
+	var selText = parentObject.options[parentObject.selectedIndex].value;
+	var nType;
+	var nn = selText.indexOf(":");
+	if (nn <= 0)
+		nType = 0;
+	else {
+		if (selText.charAt(nn + 2) == 'T')
+			nType = 1;
+		else if (selText.charAt(nn + 2) == 'I')
+			nType = 2; 
+		else if (selText.charAt(nn + 2) == 'S')
+			nType = 3;
+		else 
+			nType = 0;
+	}
+	
+	
+	var newOption1;
+
+	var messages=[[""],
+				  ["Temperature \260C","LoadCurrent (A)","Insulation (k\u03A9)"],
+				  ["Ch1 current","Ch2 current","Ch3 current","Ch4 current","Ch5 current","Ch6 current","Ch7 current","Ch8 current","Ch9 current","Ch10 current","Ch11 current","Ch12 current","Ch13 current","Ch14 current","Ch15 current","Ch16 current"],
+		          ["Preferred Supply (V)", "SecSupply 1 (V)", "SecSupply 2 (V)", "IT supply (V)"]];
+	if (nType == 0)
+		return;
+	for (var i = 0 ; i < messages[nType].length; i++) {
+		var newOption1 = new Option(messages[nType][i], messages[nType][i], false); 
+		//newOption1 = document.createElement('<option value="' + messages[nType][i] + '">');
+		child1.options.add(newOption1);
+		//newOption1.innerText = messages[nType][i];
+	}
+}
+
+
+
+// Print list box with default percent change log setup 0-90 increme
+function printPercentOptions() {
+		var ret = "";
+		for (var i=0; i<19; i++) 
+		{
+		 	ret += "<OPTION>";
+			ret += (i*5)+" %";
+		}
+		document.writeln(ret);
+}
+// Print list box with default period setup values
+function printPeriodOptions() {
+		var ret = "";
+		var num = 0;
+		for (var i=0; i<10; i++) 
+		{
+		 	ret += "<OPTION>";
+			ret += (i*10)+10+" sec";
+		}
+		document.writeln(ret);
+}
+
+/////////////////////////////////////////////////////////
+// get size and elements names from response
+// Add them to all "DATALOGER.."
+/////////////////////////////////////////////////////////
+function updateParentElements(response){
+	var newOptionsName = new Array();
+	
+	var parentSize = response.getElementsByTagName('size')[0].firstChild.data;
+
+	for (var i = 0 ; i < parentSize; i++) {
+		newOptionsName[i] = response.getElementsByTagName('parN' + i)[0].firstChild.data;
+	}
+	
+	addParentOptions(document.form_gwDL.DATALOGGER1, newOptionsName);
+	addParentOptions(document.form_gwDL.DATALOGGER2, newOptionsName);
+	addParentOptions(document.form_gwDL.DATALOGGER3, newOptionsName);
+	addParentOptions(document.form_gwDL.DATALOGGER4, newOptionsName);
+	/*addParentOptions(document.form_gwDL.DATALOGGER5, newOptionsName);
+	addParentOptions(document.form_gwDL.DATALOGGER6, newOptionsName);
+	addParentOptions(document.form_gwDL.DATALOGGER7, newOptionsName);
+	addParentOptions(document.form_gwDL.DATALOGGER8, newOptionsName);
+	addParentOptions(document.form_gwDL.DATALOGGER9, newOptionsName);
+	addParentOptions(document.form_gwDL.DATALOGGER10, newOptionsName);*/
+}
+
+function addParentOptions(parent, parentOptionsNameArray) {
+	parent.options.length= 0; //remove all;
+	for (var i = 0; i < parentOptionsNameArray.length; i++) {
+		//var newOption = document.createElement('<option value="' + parentOptionsNameArray[i] + '">');
+//parent.options.add(newOption);
+		//newOption.innerText = parentOptionsNameArray[i];
+var newOption = new Option(parentOptionsNameArray[i], parentOptionsNameArray[i], false); 
+
+		parent.options.add(newOption);
+		
+	}
+}
+
+////////////////////////////////////////////////////
+// private "callback" function. 
+////////////////////////////////////////////////////
+function updatepageGW_DL(str){ 
+	var temp;
+	var response  = str.documentElement;
+	if (response == null ) {
+		window.location = "/login.html";
+		return;
+		//window.location = "login.html"
+	}
+	
+	updateParentElements(response);
+
+	document.form_gwDL.DATALOGGER1.selectedIndex = response.getElementsByTagName('adr1')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER1, document.form_gwDL.OPTIONS1, document.form_gwDL.TRIG1, document.form_gwDL.PERIOD1);
+	document.form_gwDL.OPTIONS1.selectedIndex = response.getElementsByTagName('msid1')[0].firstChild.data;
+	document.form_gwDL.TRIG1.selectedIndex = response.getElementsByTagName('chan1')[0].firstChild.data;
+	document.form_gwDL.PERIOD1.selectedIndex = response.getElementsByTagName('per1')[0].firstChild.data;
+		
+	document.form_gwDL.DATALOGGER2.selectedIndex = response.getElementsByTagName('adr2')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER2, document.form_gwDL.OPTIONS2, document.form_gwDL.TRIG2, document.form_gwDL.PERIOD2);
+	document.form_gwDL.OPTIONS2.selectedIndex = response.getElementsByTagName('msid2')[0].firstChild.data;
+	document.form_gwDL.TRIG2.selectedIndex = response.getElementsByTagName('chan2')[0].firstChild.data;
+	document.form_gwDL.PERIOD2.selectedIndex = response.getElementsByTagName('per2')[0].firstChild.data;
+
+		
+	document.form_gwDL.DATALOGGER3.selectedIndex = response.getElementsByTagName('adr3')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER3, document.form_gwDL.OPTIONS3, document.form_gwDL.TRIG3, document.form_gwDL.PERIOD3);
+	document.form_gwDL.OPTIONS3.selectedIndex = response.getElementsByTagName('msid3')[0].firstChild.data;
+	document.form_gwDL.TRIG3.selectedIndex = response.getElementsByTagName('chan3')[0].firstChild.data;
+	document.form_gwDL.PERIOD3.selectedIndex = response.getElementsByTagName('per3')[0].firstChild.data;
+
+		
+	document.form_gwDL.DATALOGGER4.selectedIndex = response.getElementsByTagName('adr4')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER4, document.form_gwDL.OPTIONS4, document.form_gwDL.TRIG4, document.form_gwDL.PERIOD4);
+	document.form_gwDL.OPTIONS4.selectedIndex = response.getElementsByTagName('msid4')[0].firstChild.data;
+	document.form_gwDL.TRIG4.selectedIndex = response.getElementsByTagName('chan4')[0].firstChild.data;
+	document.form_gwDL.PERIOD4.selectedIndex = response.getElementsByTagName('per4')[0].firstChild.data;
+
+	/*
+	document.form_gwDL.DATALOGGER5.selectedIndex = response.getElementsByTagName('adr5')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER5, document.form_gwDL.OPTIONS5, document.form_gwDL.TRIG5, document.form_gwDL.PERIOD5);
+	document.form_gwDL.OPTIONS5.selectedIndex = response.getElementsByTagName('msid5')[0].firstChild.data;
+	document.form_gwDL.TRIG5.selectedIndex = response.getElementsByTagName('chan5')[0].firstChild.data;
+	document.form_gwDL.PERIOD5.selectedIndex = response.getElementsByTagName('per5')[0].firstChild.data;
+
+		
+	document.form_gwDL.DATALOGGER6.selectedIndex = response.getElementsByTagName('adr6')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER6, document.form_gwDL.OPTIONS6, document.form_gwDL.TRIG6, document.form_gwDL.PERIOD6);
+	document.form_gwDL.OPTIONS6.selectedIndex = response.getElementsByTagName('msid6')[0].firstChild.data;
+	document.form_gwDL.TRIG6.selectedIndex = response.getElementsByTagName('chan6')[0].firstChild.data;
+	document.form_gwDL.PERIOD6.selectedIndex = response.getElementsByTagName('per6')[0].firstChild.data;
+
+	document.form_gwDL.DATALOGGER7.selectedIndex = response.getElementsByTagName('adr7')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER7, document.form_gwDL.OPTIONS7, document.form_gwDL.TRIG7, document.form_gwDL.PERIOD7);
+	document.form_gwDL.OPTIONS7.selectedIndex = response.getElementsByTagName('msid7')[0].firstChild.data;
+	document.form_gwDL.TRIG7.selectedIndex = response.getElementsByTagName('chan7')[0].firstChild.data;
+	document.form_gwDL.PERIOD7.selectedIndex = response.getElementsByTagName('per7')[0].firstChild.data;
+
+	document.form_gwDL.DATALOGGER8.selectedIndex = response.getElementsByTagName('adr8')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER8, document.form_gwDL.OPTIONS8, document.form_gwDL.TRIG8, document.form_gwDL.PERIOD8);
+	document.form_gwDL.OPTIONS8.selectedIndex = response.getElementsByTagName('msid8')[0].firstChild.data;
+	document.form_gwDL.TRIG8.selectedIndex = response.getElementsByTagName('chan8')[0].firstChild.data;
+	document.form_gwDL.PERIOD8.selectedIndex = response.getElementsByTagName('per8')[0].firstChild.data;
+
+	
+	document.form_gwDL.DATALOGGER9.selectedIndex = response.getElementsByTagName('adr9')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER9, document.form_gwDL.OPTIONS9, document.form_gwDL.TRIG9, document.form_gwDL.PERIOD9);
+	document.form_gwDL.OPTIONS9.selectedIndex = response.getElementsByTagName('msid9')[0].firstChild.data;
+	document.form_gwDL.TRIG9.selectedIndex = response.getElementsByTagName('chan9')[0].firstChild.data;
+	document.form_gwDL.PERIOD9.selectedIndex = response.getElementsByTagName('per9')[0].firstChild.data;
+
+	
+	document.form_gwDL.DATALOGGER10.selectedIndex = response.getElementsByTagName('adr10')[0].firstChild.data;
+	updateChildsElements(document.form_gwDL.DATALOGGER10, document.form_gwDL.OPTIONS10, document.form_gwDL.TRIG10, document.form_gwDL.PERIOD10);
+	document.form_gwDL.OPTIONS10.selectedIndex = response.getElementsByTagName('msid10')[0].firstChild.data;
+	document.form_gwDL.TRIG10.selectedIndex = response.getElementsByTagName('chan10')[0].firstChild.data;
+	document.form_gwDL.PERIOD10.selectedIndex = response.getElementsByTagName('per10')[0].firstChild.data; */
+}
+</script>
+
+<script type="text/javascript" src="cooltreepro_uncompressed.js"></script>
+<script type="text/javascript" src="tree_format.js"></script>
+<script type="text/javascript" src="/cgi-bin/cgiLeftMenu"></script>
+<script type="text/javascript" src="tree_format_setup.js"></script>
+<script type="text/javascript" src="popUps.js"></script>
+<script type="text/javascript" src="dyn_list_box.js"></script>	
+
+<script type="text/javascript">
+</script>	
+
+<meta http-equiv="Page-Enter" content="blendTrans(Duration=2)"/>
+<meta http-equiv="Site-Exit" content="blendTrans(Duration=5)"/>
+</head>
+
+<body>
+
+<div id="wrapper">
+<div id="header">
+<script type="text/javascript" src="header.js"></script>
+</div>
+<div id="content">
+
+<table id="mytable" cellspacing="0">
+<caption><img src="images/page_white_wrench.png" width="16" height="16" alt="" align="top"/>    Gateway datalogger setup      </caption>
+<form name="form_gwDL" action="javascript:setParamsGW_DL('cgi-bin/cgiCommonData','w')"> 
+
+		<table class="tablecontent">
+		<tr><th class="">Num</th><th>Addr</th><th>Msg Id</th><th>% change</th><th>Period</th></tr>
+		
+		<tr><th class="spec" style="text-align:center;">1</th>
+		<td class="alt"><select name="DATALOGGER1" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS1, document.form_gwDL.TRIG1, document.form_gwDL.PERIOD1)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS1" id="op1"></SELECT></td>
+		<td class="alt"><select name="TRIG1"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD1"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>	
+
+		<tr><th class="spec" style="text-align:center;">2</th>
+		<td class="alt"><select name="DATALOGGER2" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS2, document.form_gwDL.TRIG2, document.form_gwDL.PERIOD2)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS2"></SELECT></td>
+		<td class="alt"><select name="TRIG2" id="tr2"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD2"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>				
+
+			<tr><th class="spec" style="text-align:center;">3</th>
+		<td class="alt"><select name="DATALOGGER3" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS3, document.form_gwDL.TRIG3, document.form_gwDL.PERIOD3)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS3"></SELECT></td>
+		<td class="alt"><select name="TRIG3"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD3"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>			
+		
+			<tr><th class="spec" style="text-align:center;">4</th>
+		<td class="alt"><select name="DATALOGGER4" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS4, document.form_gwDL.TRIG4, document.form_gwDL.PERIOD4)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS4"></SELECT></td>
+		<td class="alt"><select name="TRIG4"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD4"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>			
+	<!-- 	
+			<tr><th class="spec" style="text-align:center;">5</th>
+		<td class="alt"><select name="DATALOGGER5" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS5, document.form_gwDL.TRIG5, document.form_gwDL.PERIOD5)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS5"></SCRIPT></SELECT></td>
+		<td class="alt"><select name="TRIG5"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD5"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>			
+		
+			<tr><th class="spec" style="text-align:center;">6</th>
+		<td class="alt"><select name="DATALOGGER6" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS6, document.form_gwDL.TRIG6, document.form_gwDL.PERIOD6)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS6"></SELECT></td>
+		<td class="alt"><select name="TRIG6"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD6"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>			
+		
+			<tr><th class="spec" style="text-align:center;">7</th>
+		<td class="alt"><select name="DATALOGGER7" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS7, document.form_gwDL.TRIG7, document.form_gwDL.PERIOD7)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS7"></SELECT></td>
+		<td class="alt"><select name="TRIG7"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD7"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>			
+		
+			<tr><th class="spec" style="text-align:center;">8</th>
+		<td class="alt"><select name="DATALOGGER8" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS8, document.form_gwDL.TRIG8, document.form_gwDL.PERIOD8)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS8"></SELECT></td>
+		<td class="alt"><select name="TRIG8"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD8"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>			
+		
+			<tr><th class="spec" style="text-align:center;">9</th>
+		<td class="alt"><select name="DATALOGGER9" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS9, document.form_gwDL.TRIG9, document.form_gwDL.PERIOD9)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS9"></SELECT></td>
+		<td class="alt"><select name="TRIG9"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD9"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>			
+		
+			<tr><th class="spec" style="text-align:center;">10</th>
+		<td class="alt"><select name="DATALOGGER10" onchange="javascript:onChangedParentCombobox(this, document.form_gwDL.OPTIONS10, document.form_gwDL.TRIG10, document.form_gwDL.PERIOD10)"></SELECT>
+		</td>
+		<td class="alt"><select name="OPTIONS10"></SELECT></td>
+		<td class="alt"><select name="TRIG10"><SCRIPT LANGUAGE="JavaScript">printPercentOptions()</SCRIPT></SELECT></td>
+		<td class="alt"><select name="PERIOD10"><SCRIPT LANGUAGE="JavaScript">printPeriodOptions()</SCRIPT></SELECT>
+		</td>
+		</tr>			
+			-->
+																	
+		</table>
+
+
+<div id="contentfooter" style="padding-left:30px;">	
+<input type=submit value="Save" title="Store parameters"class="btn" onmouseover='this.className="btn btnhov"' onmouseout='this.className="btn"'>
+
+</div>	
+</form>	
+</table>
+</div><!-- content -->
+
+<div id="menu">
+<script type="text/javascript">
+var tree1 = new COOLjsTreePRO("tree1", TREE_NODES, TREE_FORMAT);
+tree1.init();
+</script>
+</div><!-- menu -->
+<div id="footer">
+<script type="text/javascript" src="footer.js"></script>
+</div>
+</div><!-- wrapper -->
+</body>
+</html>
+
+
+

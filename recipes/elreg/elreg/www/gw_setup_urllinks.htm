@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html;  charset=UTF-8"/> 
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+
+<script type="text/javascript" charset="UTF-8">
+var t;
+var xmlhttp;
+
+window.onload = loadGW_UR; 
+
+function loadGW_UR()
+{
+	setParamsGW_UR('cgi-bin/cgiCommonData',"r");
+}
+/*
+function string2Bin(str) { 
+  var result = []; 
+  for (var i = 0; i < str.length; i++) { 
+    result.push(str.charCodeAt(i)); 
+  } 
+  return result; 
+} 
+
+
+function bin2String(array) { 
+  return String.fromCharCode.apply(String, array); 
+}
+*/
+function writeGW_UR()
+{
+	setParamsGW_UR('cgi-bin/cgiCommonData',"w");
+}
+
+function setParamsGW_UR(url, command){
+	if (window.XMLHttpRequest){
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	xmlhttp.open("POST",url,true);
+	//xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			updatepageGW_UR(xmlhttp.responseXML);
+		}
+	}
+
+	if (command == "r")
+		xmlhttp.send("comm=" + command + "&formID=gwUrl&canID=122211&loginID=22222&END=2");
+	else { 
+	xmlhttp.send("comm=" + command + "&formID=gwUrl&canID=122211&loginID=22222&END=2" +
+			"&u=" + document.gwUrl.u.value + 
+			"&m=" + document.gwUrl.m.value);
+	}
+	document.gwUrl.btn.disabled=true;
+	document.gwUrl.u.value = ""; 
+	document.gwUrl.m.value = "";
+}
+
+
+function updatepageGW_UR(str){ 
+	var temp;
+	document.gwUrl.btn.disabled=false;
+	var response  = str.documentElement;
+	if (response == null ) {
+		window.location = "/login.html";
+		return;
+	}
+	if (response.getElementsByTagName('u')[0].firstChild != null)
+	document.gwUrl.u.value = response.getElementsByTagName('u')[0].firstChild.data;
+	if (response.getElementsByTagName('m')[0].firstChild != null)
+	document.gwUrl.m.value = response.getElementsByTagName('m')[0].firstChild.data;
+}
+</script>
+
+<script type="text/javascript" src="cooltreepro_uncompressed.js"></script>
+<script type="text/javascript" src="tree_format.js"></script>
+<script type="text/javascript" src="/cgi-bin/cgiLeftMenu"></script>
+<script type="text/javascript" src="tree_format_setup.js"></script>
+<script type="text/javascript" src="popUps.js"></script>
+
+
+<meta http-equiv="Page-Enter" content="blendTrans(Duration=2)"/>
+<meta http-equiv="Site-Exit" content="blendTrans(Duration=5)"/>
+</head>
+
+<body>
+
+
+<div id="wrapper">
+
+<div id="header">
+<script type="text/javascript" src="header.js"></script>
+</div>
+<div id="content">
+
+<!--	  GateWay e-mail setup -->
+
+<table id="mytable" cellspacing="0">
+<caption><img src="images/page_white_wrench.png" width="16" height="16" alt="" align="top" />    Gateway url links setup      </caption>
+	<form name="gwUrl" action="javascript:setParamsGW_UR('cgi-bin/cgiCommonData','w')">
+	<table class="title"><tr><td>Product documentation</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">Url link:</th><td><input type="text" class="text" id="u" value=""/></td><td>&nbsp;</td><tr>
+
+		</table> 
+	
+	<table class="title"><tr><td>Support</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">E-mail:</th><td><input type="text" class="text" id="m" value=""/></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">&nbsp;</th><td class="spec">&nbsp;</td><td>&nbsp;</td><tr>
+		</table> 
+
+<div id="contentfooter" style="padding-left:30px;">	
+<input type=submit value="Save" title="Store parameters"class="btn" id="btn" onmouseover='this.className="btn btnhov"' onmouseout='this.className="btn"'>
+</div>	
+</form>	
+</table>	
+</div>
+
+<div id="menu">
+<script type="text/javascript">
+var tree1 = new COOLjsTreePRO("tree1", TREE_NODES, TREE_FORMAT);
+tree1.init();
+</script>
+</div>
+<div id="footer">
+<script type="text/javascript" src="footer.js"></script>
+</div>
+</div>
+
+<script type="text/javascript">
+
+</script>
+</body>
+</html>
+
+
+

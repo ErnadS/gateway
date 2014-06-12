@@ -1,0 +1,187 @@
+/*
+ * postParser.c
+ *
+ *  Created on: 28. jan. 2010
+ *      Author: Ernad
+ */
+
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "paramUtil.h"
+#include "../config.h"
+
+#define WHITESPACE_CHARS  " \f\n\r\t\v"
+
+int removeCommentedLines(char* string);
+int removeCommentedLine(char* string);
+
+int trimLeft(char *string);
+
+/**
+ * get next paramName and paramValue from buffer. Expected format of buffer is e.g.:
+ *
+ * paramEnd is "&" or new line
+ * if paramEnd = "&":  param1=value1&param2=value2&param3=value3
+ *
+ * return:
+ * 	   -1 if parsing error
+ * 		0 if parsing last parameter (finished)
+ *     >0 index of next parameter if not finished.
+ */
+int paramUtil_getNextParam(char* inBuffer, char* paramEnd, char* paramName, char* paramValue) {
+	char * buffer;
+	int nEndOfComments = removeCommentedLines(inBuffer);
+	if (nEndOfComments < 0)
+		return -1;
+
+	buffer = &inBuffer[nEndOfComments];
+
+	char *paramEndPointer = strstr(buffer, paramEnd);
+	char *sepPointer = strstr(buffer, "=");
+
+	int nParamEndPos;
+
+	if (paramEndPointer <= 0) {
+		if (sepPointer > 0) { // if last element
+			nParamEndPos = strlen(buffer);
+		} else {
+			return -1;
+		}
+	} else {
+		nParamEndPos = paramEndPointer - buffer;
+	}
+
+	//buffer[nParamEndPos] = 0;
+
+	if (sepPointer < 0)
+		return -1; //separator not found
+	int sepPos = sepPointer - buffer;
+
+	if (sepPos < MAX_PARAM_NAME_LENGTH - 1) {
+		strncpy(paramName, buffer, sepPos);
+		paramName[sepPos] = 0; //strncpy doesn't null terminate the destination string
+	} else {
+		strncpy(paramName, buffer, MAX_PARAM_NAME_LENGTH - 1);
+		paramName[MAX_PARAM_NAME_LENGTH - 1] = 0;
+	}
+
+	int restLength = nParamEndPos - sepPos - 1;
+
+	if (restLength < MAX_PARAM_VALUE_LENGTH - 1) {
+		strncpy(paramValue, &buffer[sepPos + 1], restLength);
+		paramValue[restLength] = 0;
+	} else {
+		strncpy(paramValue, &buffer[sepPos + 1], MAX_PARAM_VALUE_LENGTH - 1);
+		paramValue[MAX_PARAM_VALUE_LENGTH - 1] = 0;
+	}
+#ifdef PRINT_REC_PARAMETERS
+	printf("paramName:%s, paramValue: %s\n", paramName, paramValue);
+#endif
+
+	if (buffer[nParamEndPos + 1] == 0)
+		return 0; 				// last element parsed
+	return nParamEndPos + nEndOfComments + 1; 	// it is more elements in buffer
+}
+
+int removeCommentedLines(char* string) {
+	int nPos = 0;
+	int nTemp;
+
+	do {
+		nTemp = removeCommentedLine(&string[nPos]);
+		if (nTemp < 0) {
+			if (nPos == 0) {
+				return -1; // end of string
+			}
+			break; // end of comments
+		} else {
+			nPos += nTemp;
+		}
+	} while(nTemp > 0);
+
+	return nPos;
+}
+
+int removeCommentedLine(char* string) {
+	int nTemp = 0;
+	int nPos = trimLeft(string);
+	if (nPos < 0)
+		return -1;
+
+	if (string[nPos] == '#') {
+		nTemp = getLengthOfNextLine(&string[nPos]);
+		if (nTemp < 0)
+			return -1;
+	}
+
+	return (nTemp + nPos);
+}
+
+
+int getLengthOfNextLine(char* string) {
+	char *ptr = NULL;
+
+	if (*string){
+		ptr = string;
+		// Skip leading whitespace.
+		while (*ptr != '\n') {
+			if (*ptr == 0) {
+				return -1; // end
+			}
+		   ++ptr;
+		}
+	} else {
+		return -1;
+	}
+	return (int)(ptr - string);
+}
+
+/**
+ * trimLeft
+ *
+ * return: length to first non-whitespace character
+ */
+
+int trimLeft(char *string){
+    char *ptr = NULL;
+
+    // Ignore NULL pointers.
+    if (*string)
+    {
+        ptr = string;
+        // Skip leading whitespace.
+        while (strchr(WHITESPACE_CHARS, *ptr))
+            ++ptr;
+
+        if (*ptr) // if not end of string
+        	return (int)(ptr - string);
+    }
+
+    return -1;
+}
+
+/*
+char * trim(char *string){
+    char *result = NULL, *ptr = NULL;
+
+    // Ignore NULL pointers.
+    if (string)
+    {
+        ptr = string;
+        // Skip leading whitespace.
+        while (strchr(WHITESPACE_CHARS, *ptr))
+            ++ptr;
+        // Make a copy of the remainder. /
+        result = strdup(ptr);
+        // Move to the last character of the copy (that is, until the NULL char is reached).
+        for (ptr = result; *ptr; ptr++);
+        // Move to the last non-whitespace character of the copy.
+        for (--ptr; strchr(WHITESPACE_CHARS, *ptr); --ptr);
+        // Remove trailing whitespace.
+        *(++ptr) = '\0';
+    }
+
+    return result;
+}*/
+

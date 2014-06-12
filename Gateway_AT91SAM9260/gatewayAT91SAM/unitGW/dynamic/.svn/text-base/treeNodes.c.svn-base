@@ -1,0 +1,287 @@
+/*
+ * treeNodes.c
+ *
+ *  Created on: 4. mai 2010
+ *      Author: Ernad
+ */
+
+#include <stdio.h>
+#include<sys/stat.h>
+#include "../../config.h"
+#include "../model/linkedList/deviceLinkedList.h"
+#include "../model/device.h"
+#include <string.h>
+#include "../gateway.h"
+#include "../utility/gwDataLogerUtility.h"
+#include "../../log/dataLogerLogic.h"
+
+void treeNodes_addForUser(FILE * hFile, char admin);
+
+void treeNodes_addStart(FILE * hFile, char admin);
+
+void treeNodes_addTgLog(FILE * hFile, unsigned char adr, unsigned char msid);
+void treeNodes_addIlLog(FILE * hFile, unsigned char adr, unsigned char msid);
+void treeNodes_addSwLog(FILE * hFile, unsigned char adr, unsigned char msid);
+
+void treeNodes_addGatewayUnit(FILE * hFile, char admin);
+void treeNodes_addTgUnit(FILE * hFile, DEV* dev, char admin);
+void treeNodes_addIlUnit(FILE * hFile, DEV* dev, char admin);
+void treeNodes_addSwUnit(FILE * hFile, DEV* dev, char admin);
+void treeNodes_addApUnit(FILE * hFile, DEV* dev, char admin);
+
+char treeNodes_createPage(void) {
+	FILE * hFile;
+	hFile = fopen(TREE_NODES_PATH, "w");
+	if (hFile == NULL) { // FILE NOT EXIST, CREATE
+		return -1;
+	}
+
+	treeNodes_addForUser(hFile, 1); // add for admin
+	treeNodes_addForUser(hFile, 0); // add for user (none admin)
+
+	fclose(hFile);
+	return 1;
+}
+
+void treeNodes_addForUser(FILE * hFile, char admin) {
+	treeNodes_addStart(hFile, admin);
+	treeNodes_addGatewayUnit(hFile, admin);
+
+	int i;
+	int nDevicesCount = deviceLinkedList_getSize();
+
+	DEV * dev;
+
+	for (i = 0; i < nDevicesCount; i++) {
+		dev = deviceLinkedList_getElementAt(i);
+
+		if (dev->type == TG) {
+			treeNodes_addTgUnit(hFile, dev, admin);
+		} else if (dev->type == IL) {
+			treeNodes_addIlUnit(hFile, dev, admin);
+		} else if (dev->type == SW) {
+			treeNodes_addSwUnit(hFile, dev, admin);
+		} else if (dev->type == AP) {
+			treeNodes_addApUnit(hFile, dev, admin);
+		}
+	}
+	fputs("]];", hFile);
+}
+
+void treeNodes_addStart(FILE * hFile, char admin) {
+	if (admin)
+		fputs("var TREE_NODES = [\n", hFile);
+	else
+		fputs("var TREE_NODES2 = [\n", hFile);
+
+	fputs(
+			"['Menu', null, \"clsNodeSelected\", {format:{expanded:true,folders:[\"/images/blank.gif\", \"/images/blank.gif\", \"/images/blank.gif\"]}},\n",
+			hFile);
+	fputs(
+			"['Welcome', '/index.htm', null, {format:{folder:['/images/page_white_edit.png', '/images/page_white_text.png', '/images/page_white_wrench.png']}}], \n",
+			hFile);
+	fputs("['System outline', '/gw_system_outline.htm', null],\n", hFile);
+	fputs("['Alarm messages', '/gw_alarmMsgs.htm', null],\n", hFile);
+	////////////////////////////////////////////////////////////////////
+	// ADD DATA LOGER (ONE FOR EACH DEVICE)
+	////////////////////////////////////////////////////////////////////
+	//fputs("['Data logger', '/gw_datalogger.htm', null],\n", hFile);
+	fputs("['Data logger', null, null \n", hFile);
+	int i;
+	int nDevicesCount = deviceLinkedList_getSize();
+
+	DEV_MEASSUR_TASK * devMeassuringsTask;
+	devMeassuringsTask = gwDagaLogerUtility_getStruct();
+
+	DEV * dev;
+
+	for (i = 0; i < MAX_LOG_TASKS; i++) {
+		if (devMeassuringsTask[i].adr > 0) {
+			dev = deviceLinkedList_getDevice(devMeassuringsTask[i].adr);
+			if (dev->type == TG) {
+				treeNodes_addTgLog(hFile, devMeassuringsTask[i].adr, devMeassuringsTask[i].msid);
+			} else if (dev->type == IL) {
+				treeNodes_addIlLog(hFile, devMeassuringsTask[i].adr, devMeassuringsTask[i].msid);
+			} else if (dev->type == SW) {
+				treeNodes_addSwLog(hFile, devMeassuringsTask[i].adr, devMeassuringsTask[i].msid);
+			}
+		}
+	}
+	fputs("],\n", hFile);
+	//////////////////////////////////////////////////////////////////////////
+	fputs("['Help', '/cgi-bin/cgiHelp', null]],\n", hFile);
+	fputs(
+			"['Devices', null, \"clsNodeSelected\",{format:{expanded:true,folders:[\"/images/blank.gif\", \"/images/blank.gif\", \"/images/blank.gif\"]}}\n",
+			hFile);
+}
+
+void treeNodes_addTgLog(FILE * hFile, unsigned char adr, unsigned char msid) { //DEV* dev) {
+	char temp[300];
+
+	sprintf(temp, ",['TG adr: %d, %s', '/cgi-bin/cgiLog?adr=%d&msid=%d', null, {format:{folders:[null, null, \"/images/excel.png\"]}}]\n", adr, messageTextTg[msid], adr, msid);
+	fputs(temp, hFile);
+}
+
+void treeNodes_addIlLog(FILE * hFile, unsigned char adr, unsigned char msid) { //
+	char temp[300];
+
+	sprintf(temp, ",['IL adr %d, CH%d', '/cgi-bin/cgiLog?adr=%d&msid=%d', null, {format:{folders:[null, null, \"/images/excel.png\"]}}]\n", adr, (msid + 1), adr, msid);
+	fputs(temp, hFile);
+}
+
+void treeNodes_addSwLog(FILE * hFile, unsigned char adr, unsigned char msid) { //
+	char temp[300];
+
+	sprintf(temp, ",['SW adr: %d, %s', '/cgi-bin/cgiLog?adr=%d&msid=%d', null, {format:{folders:[null, null, \"/images/excel.png\"]}}]\n", adr, messageTextSw[msid], adr, msid);
+	fputs(temp, hFile);
+}
+
+void treeNodes_addGatewayUnit(FILE * hFile, char admin) {
+	char temp[300];
+	int nAddr = gateway_getCanAddress();
+
+	sprintf(temp, ", ['Addr %d: GateWay', null, null,\n", nAddr);
+	fputs(temp, hFile);
+
+	fputs(
+			"['Unit description', '/gw_deviceinfo.htm', null, {format:{folders:[null, null, '/images/page_white_text.png']}}],\n",
+			hFile);
+	if (admin == 1) {
+		fputs(
+				"['Device parameters', '/gw_setup_device_par.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}],\n",
+				hFile);
+
+		fputs(
+				"['System description', '/gw_setup_system_description.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}],\n",
+				hFile);
+
+		fputs(
+				"['Data logger', '/gw_setup_datalogger.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}],\n",
+				hFile);
+		fputs(
+				"['History logg', '/gw_setup_history_logg.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}],\n",
+				hFile);
+		fputs(
+				"['Device monitoring', '/gw_setup_devicemonitor.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}],\n",
+				hFile);
+		fputs(
+				"['Network parameters', '/gw_setup_network.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}],\n",
+				hFile);
+		fputs(
+				"['Url links', '/gw_setup_urllinks.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}],\n",
+				hFile);
+		fputs(
+				"['E-mail parameters', '/gw_setup_email.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}],\n",
+				hFile);
+		fputs(
+				"['Passwords', '/gw_setup_psw.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}],\n",
+				hFile);
+		fputs(
+				"['ModBus', '/gw_setup_modbus.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}]\n",
+				hFile);
+	}
+
+	fputs("]\n", hFile);
+}
+
+void treeNodes_addTgUnit(FILE * hFile, DEV* dev, char admin) {
+	char temp[300];
+
+	sprintf(temp, ", ['Addr %d: TrafoGuard', null, null,\n", dev->adr);
+	fputs(temp, hFile);
+
+	sprintf(
+			temp,
+			"['Measurements', '/cgi-bin/cgiTrafoGuardMeasur?%d', null, {format:{folders:[null, null, '/images/page_white_text.png']}}],\n",
+			dev->adr);
+	fputs(temp, hFile);
+
+	sprintf(
+			temp,
+			"['Unit info', '/cgi-bin/cgiTrafoguardInfo?%d', null, {format:{folders:[null, null, '/images/page_white_text.png']}}],\n",
+			dev->adr);
+	fputs(temp, hFile);
+
+	if (admin == 1) {
+		sprintf(
+				temp,
+				"['Setup', '/cgi-bin/cgiTrafoguard?%d', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}]\n",
+				dev->adr);
+
+		fputs(temp, hFile);
+	}
+
+	fputs("]\n", hFile);
+}
+
+void treeNodes_addIlUnit(FILE * hFile, DEV* dev, char admin) {
+	char temp[300];
+
+	sprintf(temp, ", ['Addr %d: IsoLocator', null, null,\n", dev->adr);
+	fputs(temp, hFile);
+
+	sprintf(
+			temp,
+			"['Measurements', '/cgi-bin/cgiIsoLocatorMeasur?%d', null, {format:{folders:[null, null, '/images/page_white_text.png']}}],\n",
+			dev->adr);
+	fputs(temp, hFile);
+
+	sprintf(
+			temp,
+			"['Unit info', '/cgi-bin/cgiIsoLocatorInfo?%d', null, {format:{folders:[null, null, '/images/page_white_text.png']}}],\n",
+			dev->adr);
+	fputs(temp, hFile);
+	if (admin == 1) {
+		sprintf(
+				temp,
+				"['Setup', '/cgi-bin/cgiIsoLocator?%d', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}]\n",
+				dev->adr);
+		fputs(temp, hFile);
+	}
+
+	fputs("]\n", hFile);
+}
+
+void treeNodes_addSwUnit(FILE * hFile, DEV* dev, char admin) {
+	char temp[300];
+
+	sprintf(temp, ", ['Addr %d: Switchover', null, null,\n", dev->adr);
+	fputs(temp, hFile);
+
+	sprintf(
+			temp,
+			"['Measurements', '/cgi-bin/cgiSwitchoverMeasur?%d', null, {format:{folders:[null, null, '/images/page_white_text.png']}}],\n",
+			dev->adr);
+	fputs(temp, hFile);
+
+	sprintf(
+			temp,
+			"['Unit info', '/cgi-bin/cgiSwitchoverInfo?%d', null, {format:{folders:[null, null, '/images/page_white_text.png']}}],\n",
+			dev->adr);
+	fputs(temp, hFile);
+	if (admin == 1) {
+		sprintf(
+				temp,
+				"['Setup', '/cgi-bin/cgiSwitchover?%d', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}]\n",
+				dev->adr);
+		fputs(temp, hFile);
+	}
+
+	fputs("]\n", hFile);
+}
+
+void treeNodes_addApUnit(FILE * hFile, DEV* dev, char admin) {
+	char temp[300];
+
+	sprintf(temp, ", ['Addr %d: AlarmPanel', null, null,\n", dev->adr);
+	fputs(temp, hFile);
+
+	fputs(
+			"['Unit info', '/ap_deviceinfo.htm', null, {format:{folders:[null, null, '/images/page_white_text.png']}}],\n",
+			hFile);
+	if (admin == 1)
+		fputs(
+				"['Setup', '/ap_setup.htm', null, {format:{folders:[null, null, '/images/page_white_wrench.png']}}]\n",
+				hFile);
+	fputs("]\n", hFile);
+}

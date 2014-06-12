@@ -1,0 +1,117 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+
+
+
+<script charset="UTF-8" type="text/javascript">
+var xmlhttp;
+
+window.onload = loadGW_DI; 
+
+function loadGW_DI()
+{	
+	if (window.XMLHttpRequest){
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	xmlhttp.open("POST","/cgi-bin/cgiCommonData",true);
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	//xmlhttp.setRequestHeader("Content-length", 8); // TODO: er det bedre å bruke den?
+
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			updatepageGW_DI(xmlhttp.responseXML);
+		}
+	}
+	
+	xmlhttp.send("comm=r&formID=gw_di&canID=122211&loginID=22222&END=2");
+}
+
+function updatepageGW_DI(str){ 
+	var response  = str.documentElement;
+	if (response == null ) { 
+		window.location = "/login.html";
+		return;
+	}
+
+	if (response.getElementsByTagName('loc') != null && response.getElementsByTagName('loc')[0].firstChild != null)
+		document.gw_di.loc.value=response.getElementsByTagName('loc')[0].firstChild.data;
+	//	document.getElementById('loc').value=response.getElementsByTagName('loc')[0].firstChild.data;
+	else
+		document.gw_di.loc.value="?";
+		//document.getElementById('loc').value="?";
+		
+	document.gw_di.canAdr.value=response.getElementsByTagName('canAdr')[0].firstChild.data;
+	document.gw_di.vers.value=response.getElementsByTagName('vers')[0].firstChild.data;
+}
+
+</script>
+
+<script charset="UTF-8" type="text/javascript" src="cooltreepro_uncompressed.js"></script>
+<script charset="UTF-8" type="text/javascript" src="tree_format.js"></script>
+<script charset="UTF-8" type="text/javascript" src="/cgi-bin/cgiLeftMenu"></script>
+<script charset="UTF-8" type="text/javascript" src="tree_format_setup.js"></script>
+<script charset="UTF-8" type="text/javascript" src="popUps.js"></script>
+
+<meta http-equiv="Page-Enter" content="blendTrans(Duration=2)"/>
+<meta http-equiv="Site-Exit" content="blendTrans(Duration=5)"/>
+</head>
+
+<body>
+<div id="wrapper">
+<div id="header">
+<script type="text/javascript" src="header.js"></script>
+</div>
+<div id="content">
+
+<!--	  GateWay device information page -->
+
+<table id="mytable" cellspacing="0">
+<caption>GateWay device information</caption>
+	<form name="gw_di">
+	<table class="title"><tr><td>Unit location/Id</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">Location/Id:</th><td><input readonly="readonly" type="text" id="loc" class="greyText"/></td>
+        <td>&nbsp;</td></tr>
+		</table>  
+
+	<table class="title"><tr><td>NCAN bus address</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">Network address:</th><td><input readonly="readonly" type="text" id="canAdr" class="greyText"/></td><td>&nbsp;</td></tr>
+		</table> 
+	
+<table class="title"><tr><td>Firmware</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">Version:</th><td><input readonly="readonly" type="text" id="vers" class="greyText"/></td><td>&nbsp;</td></tr>
+		</table> 
+        </form>
+</table>
+
+</div><!-- content -->
+
+<div id="menu">
+<script type="text/javascript">
+var tree1 = new COOLjsTreePRO("tree1", TREE_NODES, TREE_FORMAT);
+tree1.init();
+</script>			
+</div>
+
+<div id="footer">
+<script type="text/javascript" src="footer.js"></script>
+</div>
+</div><!-- wrapper -->
+</body>
+</html>
+
+
+

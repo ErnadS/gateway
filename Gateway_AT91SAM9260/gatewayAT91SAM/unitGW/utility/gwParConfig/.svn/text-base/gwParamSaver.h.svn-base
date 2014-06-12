@@ -1,0 +1,17 @@
+/*
+ * gwParamSaver.h
+ *
+ *  Created on: 29. mai 2010
+ *      Author: Ernad
+ */
+
+#ifndef GWPARAMSAVER_H_
+#define GWPARAMSAVER_H_
+
+#include "../../model/gwDevParData.h"
+
+char gwParamSaver_init(void);
+char gwParamSaver_readFromFile(GW_TIME * gwTimeStruct);
+char gwParamSaver_saveToFile(GW_TIME * gwTimeStruct);
+
+#endif /* GWPARAMSAVER_H_ */

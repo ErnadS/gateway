@@ -1,0 +1,14 @@
+/*
+ * myString.h
+ *
+ *  Created on: 23. apr. 2010
+ *      Author: Ernad
+ */
+
+#ifndef MYSTRING_H_
+#define MYSTRING_H_
+
+int nameStartsWith(char * string1, char* string2);
+char myString_validateString(char* string1);
+char myString_validateString2(char* string1);
+#endif /* MYSTRING_H_ */

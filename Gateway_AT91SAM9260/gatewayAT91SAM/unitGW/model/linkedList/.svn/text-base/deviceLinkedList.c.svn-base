@@ -1,0 +1,140 @@
+/*
+ * deviceLinkedList.c
+ *
+ *  Created on: 22. apr. 2010
+ *      Author: Ernad
+ */
+#include "deviceLinkedList.h"
+#include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct myList {
+	DEV device;
+	struct myList * next_device;
+} linkedListElement;
+
+linkedListElement* p_startLinkedList = NULL;
+int nListSize = 0;
+pthread_mutex_t list_mutex;
+
+/////////////////////////////////////////////////////////
+// prototypes
+/////////////////////////////////////////////////////////
+linkedListElement* deviceLinkedList_createEmptyElement();
+/////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////
+//
+//
+// return: list size (OK) or -1 (ERROR)
+/////////////////////////////////////////////////////////
+int deviceLinkedList_addElement(DEV* newDev) {
+	if (newDev == NULL)
+		return -1;
+
+	linkedListElement* p_newListElement = deviceLinkedList_createEmptyElement();
+	memcpy(p_newListElement, newDev, sizeof(DEV));
+
+	if (p_startLinkedList != NULL) { // list is not empty
+		if (p_startLinkedList->next_device != NULL)
+			p_newListElement->next_device = p_startLinkedList->next_device;
+		p_startLinkedList->next_device = p_newListElement;
+	} else {
+		p_startLinkedList = p_newListElement;
+	}
+
+	nListSize++;
+
+	return nListSize;
+}
+
+char deviceLinkedList_removeDevice(int devAddr) {
+	linkedListElement * p_linkedListElement;
+	linkedListElement * previousElement = NULL;
+	p_linkedListElement = p_startLinkedList;
+
+	while (p_linkedListElement != NULL) {
+		if (p_linkedListElement->device.adr == devAddr) {
+			if (previousElement != NULL)
+				previousElement->next_device = p_linkedListElement->next_device;
+			else
+				p_startLinkedList = p_linkedListElement->next_device;
+			free(p_linkedListElement);
+			p_linkedListElement = NULL;
+			nListSize --;
+			return 1;
+		}else {
+			previousElement = p_linkedListElement;
+			p_linkedListElement = p_linkedListElement->next_device;
+		}
+	}
+	return 0;
+}
+
+DEV* deviceLinkedList_getDevice(int devAddr) {
+	linkedListElement * p_linkedList;
+	p_linkedList = p_startLinkedList;
+
+	while (p_linkedList != NULL) {
+		if (p_linkedList->device.adr == devAddr) {
+			return &(p_linkedList->device);
+		}
+		p_linkedList = p_linkedList->next_device;
+	}
+
+	return NULL;
+}
+
+int deviceLinkedList_getSize(void) {
+	return nListSize;
+}
+
+DEV* deviceLinkedList_getElementAt(int pos) {
+	int i;
+	linkedListElement * p_listElement;
+	p_listElement = p_startLinkedList;
+
+	for (i = 0; i < pos; i++) {
+		if (p_listElement == NULL)
+			return NULL;
+		p_listElement = p_listElement->next_device;
+	}
+
+	return &(p_listElement->device);
+}
+
+/*
+ void circLinkedList_freeMemory(void) {
+ linkedList* p_nextListElement;
+ linkedList* p_temp;
+
+ pthread_mutex_lock(&list_mutex);
+ p_nextListElement = p_startLinkedList->nextElem;
+ p_startLinkedList->nextElem = NULL;
+
+ while ( p_nextListElement != NULL) {
+ p_temp = p_nextListElement->nextElem;
+ free(p_nextListElement->msg);
+ free(p_nextListElement);
+ p_nextListElement = p_temp;
+ }
+
+ pthread_mutex_unlock(&list_mutex);
+ }*/
+
+/////////////////////////////////////////////////////////
+// private functions
+/////////////////////////////////////////////////////////
+
+
+/**
+ * reserverer minne for et nytt element i list
+ */
+linkedListElement * deviceLinkedList_createEmptyElement() {
+	linkedListElement * p_newListElement;
+	p_newListElement = (linkedListElement *) malloc(sizeof(linkedListElement));
+	p_newListElement->next_device = NULL;
+	return (p_newListElement);
+}

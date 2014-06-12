@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+
+<script type="text/javascript" src="/spinWait.js"></script>
+<script type="text/javascript" src="/Spinner.js"></script>
+
+<script charset="UTF-8" type="text/javascript">
+var xmlhttp;
+var spinner;
+
+window.onload = loadGW_AM; 
+
+function loadGW_AM()
+{
+	setParamsGW_AM('cgi-bin/cgiCommonData',"r");
+}
+
+
+function setParamsGW_AM(url, command) {
+	if (window.XMLHttpRequest) {
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+	
+	xmlhttp.open("POST",url,true);
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	//xmlhttp.setRequestHeader("Content-length", 8); // TODO: er det bedre å bruke den?
+
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			updatepageGW_AM(xmlhttp.responseXML);
+		}
+	}
+
+	var target = document.getElementById('WaitDiv');
+	//target.innerText="Please wait";
+	spinner = new Spinner(opts).spin(target);
+	//window.setTimeout(stopSpinner,18000); //max 18?		
+
+	
+	xmlhttp.send("comm=" + command + "&formID=gw_am&canID=122211&loginID=22222&END=2");
+}
+
+
+function AppendRow(date, time, unitName, msgType, msg)
+{
+	var alTab = document.getElementById("dynTable");
+	if(alTab != null)
+	{
+		tmpRow = alTab.insertRow(-1); // !!! Must use "document.all". Error if "document.myForm.dynTable"
+
+
+		tmpCell = tmpRow.insertCell(-1);//AppendCell(tmpRow);
+		tmpCell.innerHTML = date;
+		
+		tmpCell = tmpRow.insertCell(-1);//AppendCell(tmpRow);
+		tmpCell.innerHTML = time;
+		
+		tmpCell = tmpRow.insertCell(-1);//AppendCell(tmpRow);
+		tmpCell.innerHTML = unitName;
+		
+		tmpCell = tmpRow.insertCell(-1); //AppendCell(tmpRow);
+		tmpCell.innerHTML = msgType;
+		
+		tmpCell = tmpRow.insertCell(-1);//AppendCell(tmpRow);
+		tmpCell.innerHTML = msg;
+		//tmpCell = null;
+	}
+	else
+	{
+		alert("Error Table is null!");
+	}
+}
+
+////////////////////////////////////////////////////
+// private "callback" function. 
+////////////////////////////////////////////////////
+ function updatepageGW_AM(str){ 
+	var date, time, unitName, msgType, msg;
+	var i = 0;
+	var response  = str.documentElement;
+
+	spinner.stop();
+	
+var alTab = document.getElementById("dynTable");
+	var rows = alTab.rows;    
+	 while(rows.length > 1) 
+		alTab.deleteRow(rows.length-1);
+	
+	if (response == null ) {
+		return;
+		//window.location = "/login.html";
+	}
+
+	//AppendRow(date, time, unitName, msgType, msg)
+	while(1) {
+		if (response.getElementsByTagName("d" + i)[0] == null)
+			return;
+		
+	if (response.getElementsByTagName("d" + i)[0].firstChild != null)
+		date = response.getElementsByTagName("d" + i)[0].firstChild.data;
+
+		
+	if (response.getElementsByTagName("t" + i)[0].firstChild != null)
+		time = response.getElementsByTagName("t" + i)[0].firstChild.data;
+		
+	if (response.getElementsByTagName("n" + i)[0].firstChild != null)
+		unitName = response.getElementsByTagName("n" + i)[0].firstChild.data;
+
+		
+	if (response.getElementsByTagName("i" + i)[0].firstChild != null)
+		msgType = response.getElementsByTagName("i" + i)[0].firstChild.data;
+
+		
+if (response.getElementsByTagName("m" + i)[0].firstChild != null)
+		msg = response.getElementsByTagName("m" + i)[0].firstChild.data;
+	else
+	msg = "?";
+/*			return;*/
+		
+		AppendRow(date, time, unitName, msgType, msg);
+		i++;
+	}
+}
+
+</script>
+
+<script type="text/javascript" charset="UTF-8" src="cooltreepro_uncompressed.js"></script>
+<script type="text/javascript" charset="UTF-8" src="tree_format.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cgi-bin/cgiLeftMenu"></script>
+<script type="text/javascript" charset="UTF-8" src="tree_format_setup.js"></script>
+<script type="text/javascript" charset="UTF-8" src="popUps.js"></script>
+
+<meta http-equiv="Page-Enter" content="blendTrans(Duration=2)"/>
+<meta http-equiv="Site-Exit" content="blendTrans(Duration=5)"/>
+</head>
+
+<body>
+
+
+
+<div id="wrapper">
+<!--<p id="headline">&copy; ImedSecure.</p>-->
+<div id="header">
+<script type="text/javascript" src="header.js"></script>
+</div>
+<div id="content">
+<div id="WaitDiv" style="position:absolute; top:150px; left:250px;"></div>
+<!--	  GateWay device parameters setup -->
+
+<table id="mytable" cellspacing="0">
+<caption><img src="images/page_white_wrench.png" width="16" height="16" alt="" align="top"/>    Alarm messages      </caption>
+
+<form name="alarForm" action="javascript:setParamsGW_AM('cgi-bin/cgiCommonData','d')">
+		<table id="dynTable" name="dynTable" class="tablecontent">
+        <tr><td width="60px"><b>Date</b></td><td width="50px"><b>Time</b></td><td width="110px"><b>Type/Address</b></td><td width="80px"><b>Unit Name</b></td><td width="180px"><b>Alarm</b></td></tr>
+		</table>
+
+<div id="contentfooter" style="padding-left:30px;">	
+<input type=submit value="Delete" title="Store parameters"class="btn" onmouseover='this.className="btn btnhov"' onmouseout='this.className="btn"'>
+</div>	
+</form>	
+</table>
+</div><!-- content -->
+
+<div id="menu">
+<script type="text/javascript">
+var tree1 = new COOLjsTreePRO("tree1", TREE_NODES, TREE_FORMAT);
+tree1.init();
+</script>			
+</div>
+
+<div id="footer">
+<script type="text/javascript" src="footer.js"></script>
+</div>
+</div><!-- wrapper -->
+<script type="text/javascript">
+</script>
+</body>
+
+
+</html>
+
+
+

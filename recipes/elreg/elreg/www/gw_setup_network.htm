@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+
+<script type="text/javascript">
+var t;
+var xmlhttp;
+
+window.onload = loadGW_SN; 
+
+function loadGW_SN()
+{
+	setParamsGW_SN('cgi-bin/cgiCommonData',"r");
+}
+
+function writeGW_SN()
+{
+	setParamsGW_SN('cgi-bin/cgiCommonData',"w");
+}
+
+function reboot()
+{
+	setParamsGW_SN('cgi-bin/cgiCommonData',"s");
+}
+
+
+function setParamsGW_SN(url, command){
+	document.form_gwSN.btn.disabled=true;
+	
+	if (window.XMLHttpRequest){
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	xmlhttp.open("POST",url,true);
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			updatepageGW_SN(xmlhttp.responseXML);
+		}
+	}
+
+	if (command == "r")
+		xmlhttp.send("comm=" + command + "&formID=gw_sn&canID=122211&loginID=22222&END=2");
+	else if (command == "s")
+		xmlhttp.send("comm=s&formID=gw_sn&canID=122211&loginID=22222&END=2");
+	else {
+	var myDhcp;
+		  
+	if (document.form_gwSN.dhcpId.checked)
+	{
+		alert("Gateway IP-address will be changed by local rooter. Please, check Imed TrafoGuard menu/info/unit info for updated IP-address");
+		myDhcp = "1";
+	} else {
+		alert("You have changed Gateway IP-address to: " + document.form_gwSN.ip.value + ". Please, take notice of this for next time login");
+		myDhcp = "0";
+	}
+
+	xmlhttp.send("comm=" + command + "&formID=gw_sn&canID=122211&loginID=22222&END=2" +
+			"&dhcp=" + myDhcp + 
+			"&rout=" + document.form_gwSN.rout.value +  
+			"&ip=" + document.form_gwSN.ip.value +  
+			"&sm=" + document.form_gwSN.sm.value + 
+			"&gat=" + document.form_gwSN.gat.value +
+			"&dns=" + document.form_gwSN.dns.value);
+	
+	}
+	
+	document.form_gwSN.rout.value ="";
+	document.form_gwSN.ip.value = "";
+	document.form_gwSN.sm.value = "";
+	document.form_gwSN.gat.value = "";
+	document.form_gwSN.dns.value = "";
+}
+
+
+function updatepageGW_SN(str){ 
+	var temp;
+	document.form_gwSN.btn.disabled=false;
+	
+	var response  = str.documentElement;
+	if (response == null ) {
+		window.location = "/login.html";
+		return;
+		//window.location = "login.html"
+	}
+	//gw_enab smtp port usr pass send r1 r2 r3 r4 r5
+	if (response.getElementsByTagName('dhcp')[0].firstChild.data == "1") {
+		document.form_gwSN.dhcpId.checked = true;
+		document.form_gwSN.stat.checked = false;
+		//popup(document.form_gwSN.dhcp, 'notes2');
+	}
+	else {
+		document.form_gwSN.dhcpId.checked = false;
+		document.form_gwSN.stat.checked = true;
+		//toggleLayer('hidden');
+	}
+	if (response.getElementsByTagName('rout')[0].firstChild != null)
+		document.form_gwSN.rout.value = response.getElementsByTagName('rout')[0].firstChild.data;
+	else
+		document.form_gwSN.rout.value = "";
+	
+	if (response.getElementsByTagName('ip')[0].firstChild != null)
+		document.form_gwSN.ip.value = response.getElementsByTagName('ip')[0].firstChild.data;
+	else
+		document.form_gwSN.ip.value = "";
+		
+	if (response.getElementsByTagName('sm')[0].firstChild != null)
+		document.form_gwSN.sm.value = response.getElementsByTagName('sm')[0].firstChild.data;
+	else
+		document.form_gwSN.sm.value = response.getElementsByTagName('sm')[0].firstChild.data;
+	
+	if (response.getElementsByTagName('gat')[0].firstChild != null)
+		document.form_gwSN.gat.value = response.getElementsByTagName('gat')[0].firstChild.data;
+	else
+		document.form_gwSN.gat.value = "";
+		
+	if (response.getElementsByTagName('dns')[0].firstChild != null)
+		document.form_gwSN.dns.value = response.getElementsByTagName('dns')[0].firstChild.data;
+	else
+		document.form_gwSN.dns.value = "";
+}
+
+function setDefaultSubnetMask() {
+	if (document.form_gwSN.sm.value.length < 7)
+		document.form_gwSN.sm.value = "255.255.255.0";
+}
+
+</script>
+
+<script type="text/javascript" src="cooltreepro_uncompressed.js"></script>
+<script type="text/javascript" src="tree_format.js"></script>
+<script type="text/javascript" src="/cgi-bin/cgiLeftMenu"></script>
+<script type="text/javascript" src="tree_format_setup.js"></script>
+<script type="text/javascript" src="popUps.js"></script>
+<script type="text/javascript" src="validation.js"></script>
+
+<meta http-equiv="Page-Enter" content="blendTrans(Duration=2)"/>
+<meta http-equiv="Site-Exit" content="blendTrans(Duration=5)"/>
+</head>
+<body>
+<div id="wrapper">
+<div id="header">
+<script type="text/javascript" src="header.js"></script>
+</div>
+<div id="content">
+
+<table id="mytable" cellspacing="0">
+<caption><img src="images/page_white_wrench.png" width="16" height="16" alt="" align="top" />    Gateway Tcp/ip network setup    
+</caption>  
+	<form name="form_gwSN" action="javascript:setParamsGW_SN('cgi-bin/cgiCommonData','w')">
+	<table class="title"><tr><td><input type="radio" id="dhcpId" name="dhcp" checked value="1" style="background-color:#e4e4e4;">Automatic IP Address Configuration</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">DHCP host name:</th><td><input type="text" id="rout" class="text" value="My router"/></td><td>&nbsp;</td><tr>
+	</table> 
+	<table class="title"><tr><td><input type="radio" id="stat" name="dhcp" style="background-color:#e4e4e4;">Manual IP Address Configuration</td></tr></table>
+	<table class="tablecontent">
+		<tr><th class="spec">IP address:</th><td><input type="text" id="ip" class="text" onchange="javascript:verifyIP(this, '192.168.1.2')"/></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">Subnet mask:</th><td><input type="text" id="sm" class="text" onclick="javascript:setDefaultSubnetMask()" onchange="javascript:verifyIP(this, '255.255.255.0')"/></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">Default gateway</th><td><input type="text" id="gat" class="text" value="" onchange="javascript:verifyMask(this)"/></td><td>&nbsp;</td><tr>
+        <tr><th class="spec">DNS:</th><td><input type="text" id="dns" class="text" onchange="javascript:verifyMask(this)"/></td><td>&nbsp;</td><tr>
+	</table> 
+
+<div id="contentfooter" style="padding-left:30px;">	
+<input type=submit value="Save" title="Store parameters"class="btn" id="btn" onmouseover='this.className="btn btnhov"' onmouseout='this.className="btn"'>
+
+</div>	
+</form>	
+</table>	
+</div><!-- content -->
+
+<div id="menu">
+<script type="text/javascript">
+var tree1 = new COOLjsTreePRO("tree1", TREE_NODES, TREE_FORMAT);
+tree1.init();
+</script>			
+</div>
+
+<div id="footer">
+<script type="text/javascript" src="footer.js"></script>
+</div>
+</div><!-- wrapper -->
+
+<script type="text/javascript">
+</script>
+</body>
+</html>
+
+
+

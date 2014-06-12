@@ -1,0 +1,26 @@
+/*
+ * gwEmail.h
+ *
+ *  Created on: 7. apr. 2010
+ *      Author: Ernad
+ */
+
+#ifndef GWEMAIL_H_
+#define GWEMAIL_H_
+
+#include "../../services/smtpConfig.h"
+
+typedef struct {
+	char enabled[2]; //TODO, change to char
+	SSMTP ssmtp;
+	char recip1[40];
+	char recip2[40];
+	char recip3[40];
+	char recip4[40];
+	char recip5[40];
+} GW_EMAIL;
+
+
+
+
+#endif /* GWEMAIL_H_ */

@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+
+<script type="text/javascript">
+var xmlhttp;
+
+window.onload = loadGW_MB; 
+
+function loadGW_MB()
+{
+	setParamsGW_MB('cgi-bin/cgiCommonData',"r");
+}
+
+function writeGW_MB()
+{
+	setParamsGW_MB('cgi-bin/cgiCommonData',"w");
+}
+
+
+
+function setParamsGW_MB(url, command){
+	if (window.XMLHttpRequest){
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	xmlhttp.open("POST",url,true);
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			updatepageGW_MB(xmlhttp.responseXML);
+		}
+	}
+	
+	if (command == "r")
+		xmlhttp.send("comm=" + command + "&formID=gw_mb&canID=122211&loginID=22222&END=2");
+	else {
+	var enab;
+	if (document.getElementById('gw_e').checked)
+		enab = 1;
+	else
+		enab = 0;
+	xmlhttp.send("comm=" + command + "&formID=gw_mb&canID=122211&loginID=22222&END=2" +
+			"&gw_e=" + enab + 
+			"&add=" + document.getElementById('add').value + 
+			"&br=" + document.getElementById('br').value + 
+			"&p=" + document.getElementById('p').value + 
+			"&d=" + document.getElementById('d').value + 
+			"&s=" + document.getElementById('s').value);
+	}
+
+		document.getElementById('add').value = "";
+		document.getElementById('br').value = "";
+		document.getElementById('p').value = "";
+		document.getElementById('d').value = "";
+		document.getElementById('s').value = "";
+}
+
+function updatepageGW_MB(str){ 
+	var temp;
+	var response  = str.documentElement;
+	if (response == null ) {
+		window.location = "/login.html";
+		return;
+	}
+	
+	if (response.getElementsByTagName('err') != null && response.getElementsByTagName('err')[0] != null) {
+		alert(response.getElementsByTagName('err')[0].firstChild.data);
+	}
+	
+	if (response.getElementsByTagName('gw_e')[0].firstChild.data == "1")
+		document.myform.gw_e.checked = true;
+	else
+		document.myform.gw_e.checked = false;
+		
+	document.myform.add.value =response.getElementsByTagName('add')[0].firstChild.data;
+		
+	document.myform.br.value = response.getElementsByTagName('br')[0].firstChild.data;
+	document.myform.p.value = response.getElementsByTagName('p')[0].firstChild.data;
+	document.myform.d.value = response.getElementsByTagName('d')[0].firstChild.data;
+	document.myform.s.value = response.getElementsByTagName('s')[0].firstChild.data;
+}
+</script>
+
+<script type="text/javascript" src="cooltreepro_uncompressed.js"></script>
+<script type="text/javascript" src="tree_format.js"></script>
+<script type="text/javascript" src="/cgi-bin/cgiLeftMenu"></script>
+<script type="text/javascript" src="tree_format_setup.js"></script>
+<script type="text/javascript" src="popUps.js"></script>
+<script type="text/javascript" src="validation.js"></script>
+
+<meta http-equiv="Page-Enter" content="blendTrans(Duration=2)"/>
+<meta http-equiv="Site-Exit" content="blendTrans(Duration=5)"/>
+</head>
+
+<body>
+
+<div id="wrapper">
+<div id="header">
+<script type="text/javascript" src="header.js"></script>
+</div>
+<div id="content">
+
+<table id="mytable" cellspacing="0">
+<caption><img src="images/page_white_wrench.png" width="16" height="16" alt="" align="top" />    Gateway ModBus setup      
+</caption>
+	<form name="myform" action="javascript:setParamsGW_MB('cgi-bin/cgiCommonData','w')">
+	<table class="title"><tr><td>Enable ModBus</td></tr></table>
+		<table class="tablecontent">
+		<th class="spec">Enable:</th><td><input type="checkbox" class="nobg" name="" id="gw_e" checked="1">&nbsp;</td><tr>
+		</table> 
+    <table class="title"><tr><td>ModBus address</td></tr></table>
+		<table class="tablecontent">
+		<th class="spec">Address:</th><td><input id="add" type="text" class="text" onchange="javascript:vN2(this,1,247)"/>(1-247)</td><tr>
+		</table>   
+
+	<table class="title"><tr><td>Configuration</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">Baud rate:</th><td><select  name=\"br\" id="br">
+        <option value="0">1200</option>
+        <option value="1">2400</option>
+        <option value="2">4800</option>
+        <option value="3">9600</option>
+        <option value="4">19200</option>
+        <option value="5">28800</option>
+        <option value="6">38400</option>
+        <option value="7">57600</option>
+        <option value="8">115200</option>
+		</select></td><td>&nbsp;</td><tr>
+        <tr><th class="spec">Parity:</th><td><select  id="p"><option value="0">none</option><option value="1">odd</option><option value="2">even</option></select></td><td>&nbsp;</td><tr>
+        <tr><th class="spec">Data bits:</th><td><select  id="d"><option value="0">5</option><option value="1">6</option><option value="2">7</option><option value="3">8</option></select></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">Stop bits:</th><td><select  id="s"><option value="0">1</option><option value="2">2</option></select></td><td>&nbsp;</td><tr>
+		</table> 
+
+<div id="contentfooter" style="padding-left:30px;">	
+<input type=submit value="Save"  title="Store parameters" class="btn"  onmouseover='this.className="btn btnhov"'  onmouseout='this.className="btn"'>
+
+</div>	
+</form>	
+	</table>
+</div>
+<div id="menu">
+<script type="text/javascript">
+var tree1 = new COOLjsTreePRO("tree1", TREE_NODES, TREE_FORMAT);
+tree1.init();
+</script>			
+</div>
+
+<div id="footer">
+<script type="text/javascript" src="footer.js"></script>
+</div>
+</div>
+<script type="text/javascript">
+
+</script>
+</body>
+</html>
+
+
+

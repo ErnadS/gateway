@@ -1,0 +1,13 @@
+/*
+ * treeNodes.h
+ *
+ *  Created on: 4. mai 2010
+ *      Author: Ernad
+ */
+
+#ifndef TREENODES_H_
+#define TREENODES_H_
+
+char treeNodes_createPage(void);
+
+#endif /* TREENODES_H_ */

@@ -1,0 +1,270 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+
+<script type="text/javascript">
+var t;
+var timer_is_on=0;
+var xmlhttp;
+
+window.onload = loadGW_EM; 
+
+function loadGW_EM()
+{
+	setParamsGW_EM('cgi-bin/cgiCommonData',"r");
+}
+
+function writeGW_EM()
+{
+	setParamsGW_EM('cgi-bin/cgiCommonData',"w");
+}
+
+function testEmail()
+{
+	document.myform.save.disabled=true;
+	document.myform.test.disabled=true;
+	
+	if (window.XMLHttpRequest){
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	xmlhttp.open("POST","cgi-bin/cgiCommonData",true);
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			testResult_GW_EM(xmlhttp.responseXML);
+		}
+	}
+
+	xmlhttp.send("comm=w&formID=gw_em2&END=2");
+}
+
+function setParamsGW_EM(url, command){
+	document.myform.save.disabled=true;
+	document.myform.test.disabled=true;
+	
+	if (window.XMLHttpRequest){
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+
+	xmlhttp.open("POST",url,true);
+	xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			updatepageGW_EM(xmlhttp.responseXML);
+		}
+	}
+
+	if (command == "r")
+		xmlhttp.send("comm=" + command + "&formID=gw_em1&canID=122211&loginID=22222&END=2");
+	else {
+	var enab;
+	if (document.getElementById('gw_enab').checked)
+		enab = 1;
+	else
+		enab = 0;
+	xmlhttp.send("comm=" + command + "&formID=gw_em1&canID=122211&loginID=22222&END=2" +
+			"&gw_enab=" + enab + 
+			"&smtp=" + document.getElementById('smtp').value + 
+			"&port=" + document.getElementById('port').value + 
+			"&usr=" + document.getElementById('usr').value + 
+			"&pass=" + document.getElementById('pass').value + 
+			"&usName=" + document.getElementById('usName').value +
+			"&send=" + document.getElementById('send').value + 
+			"&r1=" + document.getElementById('r1').value + 
+			"&r2=" + document.getElementById('r2').value + 
+			"&r3=" + document.getElementById('r3').value + 
+			"&r4=" + document.getElementById('r4').value + 
+			"&r5=" + document.getElementById('r5').value);
+	}
+		document.getElementById('smtp').value = "";
+		document.getElementById('port').value = "";
+		document.getElementById('usr').value = "";
+		document.getElementById('pass').value = "";
+		document.getElementById('usName').value = "";
+		document.getElementById('send').value = "";
+		document.getElementById('r1').value = "";
+		document.getElementById('r2').value = "";
+		document.getElementById('r3').value = ""; 
+		document.getElementById('r4').value = "";
+		document.getElementById('r5').value = "";	
+}
+
+function testResult_GW_EM(str){ 
+	var temp;
+	var response  = str.documentElement;
+	document.myform.save.disabled=false;
+	document.myform.test.disabled=false;
+	
+	if (response.getElementsByTagName('err') != null && response.getElementsByTagName('err')[0] != null) {
+		alert(response.getElementsByTagName('err')[0].firstChild.data);
+	} else {
+		alert("Error 2118");
+	}
+}
+
+function updatepageGW_EM(str){ 
+	var temp;
+	
+	var response  = str.documentElement;
+	if (response == null ) {
+		window.location = "/login.html";
+		return;
+	}
+
+	if (response.getElementsByTagName('err') != null && response.getElementsByTagName('err')[0] != null) {
+		alert(response.getElementsByTagName('err')[0].firstChild.data);
+	}
+
+	if (response.getElementsByTagName('gw_enab')[0].firstChild.data == "1")
+		document.myform.gw_enab.checked = true;
+	else
+		document.myform.gw_enab.checked = false;
+	
+	if (response.getElementsByTagName('smtp')[0].firstChild != null)
+		document.myform.smtp.value = response.getElementsByTagName('smtp')[0].firstChild.data;
+	else 
+		document.myform.smtp.value = "";
+	
+	if (response.getElementsByTagName('port')[0].firstChild != null)
+		document.myform.port.value = response.getElementsByTagName('port')[0].firstChild.data;
+	else
+	document.myform.port.value = "";
+	
+	if (response.getElementsByTagName('usr')[0].firstChild != null)
+	document.myform.usr.value = response.getElementsByTagName('usr')[0].firstChild.data;
+	else
+	document.myform.usr.value = "";
+	if (response.getElementsByTagName('pass')[0].firstChild != null)
+	document.myform.pass.value = response.getElementsByTagName('pass')[0].firstChild.data;
+	else 
+	document.myform.pass.value = "";
+	
+	if (response.getElementsByTagName('usName')[0].firstChild != null)
+	document.myform.usName.value = response.getElementsByTagName('usName')[0].firstChild.data;
+	else 
+	document.myform.usName.value = "";
+	
+	if (response.getElementsByTagName('send')[0].firstChild != null)
+	document.myform.send.value = response.getElementsByTagName('send')[0].firstChild.data;
+	else 
+	document.myform.send.value = "";
+	
+	if (response.getElementsByTagName('r1')[0].firstChild != null)
+		document.myform.r1.value = response.getElementsByTagName('r1')[0].firstChild.data;
+	else
+		document.myform.r1.value = "";
+	if (response.getElementsByTagName('r2')[0].firstChild != null)
+		document.myform.r2.value = response.getElementsByTagName('r2')[0].firstChild.data;
+	else
+		document.myform.r2.value = "";
+	if (response.getElementsByTagName('r3')[0].firstChild != null)
+		document.myform.r3.value = response.getElementsByTagName('r3')[0].firstChild.data;
+	else
+		document.myform.r3.value = "";
+	if (response.getElementsByTagName('r4')[0].firstChild != null)
+		document.myform.r4.value = response.getElementsByTagName('r4')[0].firstChild.data;
+	else
+		document.myform.r4.value = "";
+	
+	if (response.getElementsByTagName('r5')[0].firstChild != null)
+		document.myform.r5.value = response.getElementsByTagName('r5')[0].firstChild.data;
+	else
+		document.myform.r5.value = "";
+		
+	document.myform.save.disabled=false;
+	document.myform.test.disabled=false;
+}
+</script>
+
+<script type="text/javascript" src="cooltreepro_uncompressed.js"></script>
+<script type="text/javascript" src="tree_format.js"></script>
+<script type="text/javascript" src="/cgi-bin/cgiLeftMenu"></script>
+<script type="text/javascript" src="tree_format_setup.js"></script>
+<script type="text/javascript" src="popUps.js"></script>
+
+<meta http-equiv="Page-Enter" content="blendTrans(Duration=2)"/>
+<meta http-equiv="Site-Exit" content="blendTrans(Duration=5)"/>
+</head>
+
+<body>
+
+
+<div id="wrapper">
+<div id="header">
+<script type="text/javascript" src="header.js"></script>
+</div>
+<div id="content">
+
+<table id="mytable" cellspacing="0">
+<caption><img src="images/page_white_wrench.png" width="16" height="16" alt="" align="top" />    Gateway e-mail setup      
+</caption>
+	<form name="myform" action="javascript:setParamsGW_EM('cgi-bin/cgiCommonData','w')">
+	<table class="title"><tr><td>Enable e-mail messaging</td></tr></table>
+		<table class="tablecontent">
+		<th class="spec">Enable:</th><td><input type="checkbox" class="nobg" name="" id="gw_enab" checked="1">&nbsp;</td><tr>
+		</table>  
+	<table class="title"><tr><td>E-mail server</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">SMTP server IP address:</th><td><input type="text" class="text" id="smtp" value="customer-smtp.one.com"/></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">Port:</th><td><input type="text" class="text" id="port" value="25"/></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">Username:</th><td><input type="text" class="text" id="usr" /></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">Password:</th><td><input type="password" class="text" id="pass" value="xxxxxx"/></td><td>&nbsp;</td><tr>
+        <tr><th class="spec">Sender name:</th><td><input type="text" class="text" id="usName" /></td><td>&nbsp;</td>
+        
+        <tr><th class="spec">Sender e-mail:</th><td><input type="text" class="text" id="send" /></td><td>&nbsp;</td>
+		</table> 
+	
+	<table class="title"><tr><td>Alarm recipients</td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">1:</th><td><input type="text" class="text" id="r1" /></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">2:</th><td><input type="text" class="text" id="r2" /></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">3:</th><td><input type="text" class="text" id="r3" /></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">4:</th><td><input type="text" class="text" id="r4" /></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">5:</th><td><input type="text" class="text" id="r5" /></td><td>&nbsp;</td><tr>
+		<tr><th class="spec">&nbsp;</th><td class="spec">&nbsp;</td><td>&nbsp;</td><tr>
+		</table> 
+
+<div id="contentfooter" style="padding-left:30px;">	
+<input type=submit value="Save"  title="Store parameters" class="btn" id="save" onmouseover='this.className="btn btnhov"'  onmouseout='this.className="btn"'>
+
+<input type=button value="Test"  title="Send test e-mail" class="btn" id="test" onclick='javascript:testEmail()' onmouseover='this.className="btn btnhov"' onmouseout='this.className="btn"'>
+
+</div>	
+</form>	
+	</table>
+</div><!-- content -->
+
+<div id="menu">
+<script type="text/javascript">
+var tree1 = new COOLjsTreePRO("tree1", TREE_NODES, TREE_FORMAT);
+tree1.init();
+</script>			
+</div>
+
+<div id="footer">
+<script type="text/javascript" src="footer.js"></script>
+</div>
+</div>
+
+<script type="text/javascript">
+</script>
+</body>
+</html>
+
+
+

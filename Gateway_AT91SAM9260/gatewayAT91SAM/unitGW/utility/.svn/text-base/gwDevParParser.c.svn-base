@@ -1,0 +1,91 @@
+/*
+ * gwDevParParser.c
+ *
+ *  Created on: 6. apr. 2010
+ *      Author: Ernad
+ */
+#include "gwDevParParser.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "../../utility/xml.h"
+#include "../../utility/paramUtil.h"
+#include "../../config.h"
+
+void gwDevParParser_clearStruct(GW_TIME* timeStruct) {
+	strcpy(timeStruct->n, "Gateway");
+
+	timeStruct->gwNewDate.day = -1;
+	timeStruct->gwNewDate.month = 1;
+	timeStruct->gwNewDate.year = 1970;
+
+	timeStruct->gwNewTime.hour = 0;
+	timeStruct->gwNewTime.min = 0;
+	timeStruct->gwNewTime.sec = 0;
+}
+
+int gwDevParParser_getStructFromRequest(char* bufferRec, GW_TIME* timeStruct) {
+	int nLength = 0;
+	int buffRecPos = 0;
+	char paramName[MAX_PARAM_NAME_LENGTH];
+	char paramValue[MAX_PARAM_VALUE_LENGTH];
+
+	while (1) {
+		nLength = paramUtil_getNextParam(&bufferRec[buffRecPos], "&",
+				paramName, paramValue);
+		if (nLength < 0)
+			break; // TODO: return -1 ???
+
+		if (strcmp(paramName, "n") == 0) {// gateway name
+			strcpy(timeStruct->n, paramValue);
+		} else if (strcmp(paramName, GW_NEW_YEAR_ALIAS) == 0) {
+			timeStruct->gwNewDate.year = atoi(paramValue);
+		} else if (strcmp(paramName, GW_NEW_MONTH_ALIAS) == 0) {
+			timeStruct->gwNewDate.month = atoi(paramValue);
+		} else if (strcmp(paramName, GW_NEW_DAY_ALIAS) == 0) {
+			timeStruct->gwNewDate.day = atoi(paramValue);
+		}
+
+		else if (strcmp(paramName, GW_NEW_HOUR_ALIAS) == 0) {
+			timeStruct->gwNewTime.hour = atoi(paramValue);
+		} else if (strcmp(paramName, GW_NEW_MIN_ALIAS) == 0) {
+			timeStruct->gwNewTime.min = atoi(paramValue);
+		} else if (strcmp(paramName, GW_NEW_SEC_ALIAS) == 0) {
+			timeStruct->gwNewTime.sec = atoi(paramValue);
+		}
+
+		if (nLength == 0)
+			break;
+		buffRecPos += nLength;
+	}
+
+	return 1;
+}
+
+int gwDevParParser__getXMLfromStruct(GW_TIME* timeStruct, char* bufferXML, char command) {
+	int nLength = 0;
+	char chTemp[MAX_PARAM_VALUE_LENGTH];
+
+	if(command != 't') // dont't send gwname if command == 't' (timer to update time)
+	nLength += xml_addTag(&bufferXML[nLength], "n", timeStruct->n);
+
+	sprintf(chTemp, "%.4d", timeStruct->gwNewDate.year);
+	nLength += xml_addTag(&bufferXML[nLength], GW_NEW_YEAR_ALIAS, chTemp);
+
+	sprintf(chTemp, "%.2d", timeStruct->gwNewDate.month);
+	nLength += xml_addTag(&bufferXML[nLength], GW_NEW_MONTH_ALIAS, chTemp);
+
+	sprintf(chTemp, "%.2d", timeStruct->gwNewDate.day);
+	nLength += xml_addTag(&bufferXML[nLength], GW_NEW_DAY_ALIAS, chTemp);
+
+	sprintf(chTemp, "%.2d", timeStruct->gwNewTime.hour);
+	nLength += xml_addTag(&bufferXML[nLength], GW_NEW_HOUR_ALIAS, chTemp);
+
+	sprintf(chTemp, "%.2d", timeStruct->gwNewTime.min);
+	nLength += xml_addTag(&bufferXML[nLength], GW_NEW_MIN_ALIAS, chTemp);
+
+	sprintf(chTemp, "%.2d", timeStruct->gwNewTime.sec);
+	nLength += xml_addTag(&bufferXML[nLength], GW_NEW_SEC_ALIAS, chTemp);
+
+	return nLength;
+}

@@ -1,0 +1,73 @@
+/*
+ * gwParamSaver.c
+ *
+ *  Created on: 29. mai 2010
+ *      Author: Ernad
+ */
+#include <string.h>
+#include <stdio.h>
+#include<sys/stat.h>
+
+#include "gwParamSaver.h"
+#include "../gwHelpUtility.h"
+#include "../../../config.h"
+#include "../../../can/ObjDict.h"
+#include "../../../services/sysTime.h"
+
+char gwParamSaver_init(void) {
+	FILE * hFile;
+	GW_TIME gwTimeStruct;
+
+	hFile = fopen(GW_PARAM_FILE_PATH, "r");
+	if (hFile == NULL) { // FILE NOT EXIST, CREATE
+		strcpy(gwTimeStruct.n, "unknown");
+		gwParamSaver_saveToFile(&gwTimeStruct);
+	} else {
+		fclose(hFile);
+	}
+
+	// Update ObjDict struct
+	gwParamSaver_readFromFile(&gwTimeStruct);
+	strcpy((char*)ObjDict_obj2002, gwTimeStruct.n);
+	return 1;
+}
+
+char gwParamSaver_readFromFile(GW_TIME * gwTimeStruct) {
+	int i = 0;
+	int maxSize = 50;
+	char buff[maxSize];
+
+	FILE * hFile;
+	hFile = fopen(GW_PARAM_FILE_PATH, "r");
+	if (hFile == NULL) {
+		return 0;
+	}
+
+	int c;
+	while ((c = fgetc(hFile)) != EOF && i < maxSize) {
+		if (c == '\n')
+			break;
+		buff[i++] = (char) c;
+	}
+	buff[i] = 0;
+
+	strcpy(gwTimeStruct->n, buff);
+
+	fclose(hFile);
+	return 1;
+}
+
+char gwParamSaver_saveToFile(GW_TIME * gwTimeStruct) {
+
+	FILE * hFile;
+	hFile = fopen(GW_PARAM_FILE_PATH, "w");
+	if (hFile == NULL) {
+		return 0;
+	}
+
+	fputs(gwTimeStruct->n, hFile);
+
+	fclose(hFile);
+
+	return 1;
+}

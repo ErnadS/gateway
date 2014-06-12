@@ -1,0 +1,218 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml"> 
+
+<head>
+
+<title>ImedSecure webserver</title>
+<meta http-equiv="Content-Type" content="text/html; charset="UTF-8" /> 
+<meta http-equiv="Pragma" content="no-cache" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" type="text/css" href="imed.css"/>
+
+
+
+<script charset="UTF-8" type="text/javascript">
+var t;
+var timer_is_on=0;
+var xmlhttp;
+var receivedTime = false;
+var timeErrCounter = 0;
+
+window.onload = loadGW_LPfirstTime; 
+
+function loadGW_LPfirstTime()
+{	
+	document.DPform.date.value = "";
+	document.DPform.time.value = "";
+	setParamsGW_LP('cgi-bin/cgiCommonData',"r");
+
+	startTimerGW_L();
+}
+
+function loadGW_LP_fromTimer()
+{
+	if (receivedTime) {
+		receivedTime = false;
+		timeErrCounter = 0;
+	} else {
+		timeErrCounter ++;
+		if (timeErrCounter >= 10)
+			return;
+	}
+	setParamsGW_LP('cgi-bin/cgiCommonData',"t");
+	startTimerGW_L();
+}
+
+function startTimerGW_L()
+{
+	t=setTimeout("loadGW_LP_fromTimer()", 1000);
+}
+
+
+function setParamsGW_LP(url, command){
+	if (command == "w")
+		document.DPform.btn.disabled=true;
+	
+	if (window.XMLHttpRequest){
+		xmlhttp=new XMLHttpRequest();
+	}
+	else {
+		xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+	
+	xmlhttp.open("POST",url,true);
+	xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");//iso-8859-1"); 
+
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState == 4) { 
+			updatepageGW_LP(xmlhttp.responseXML);
+		}
+	}
+	 
+	
+	if (command == "r" || command == "t" )
+		xmlhttp.send("comm=" + command + "&formID=gw_dp&canID=122211&loginID=22222&END=2");
+	else { //setPcTime or name
+		if (document.DPform.date.value.length > 0) {
+			var Digital = new Date();
+			var temp1 = document.DPform.date.value;
+			var temp2 = document.DPform.time.value;
+			xmlhttp.send("comm=" + command + "&formID=gw_dp&canID=122211&loginID=22222&END=2" +
+				"&n=" + document.DPform.n.value + // unit name
+				"&gw_day=" + temp1.substring(0,2) +  //Digital.getDate() + //
+				"&gw_month=" + temp1.substring(3,5) +  //Digital.getMonth() + //
+				"&gw_year=" + temp1.substring(6,10) + //Digital.getYear() + //
+				"&gw_hour=" +  temp2.substring(0,2) +  //Digital.getHours() + //
+				"&gw_min=" + temp2.substring(3,5) + //Digital.getMinutes() + //
+				"&gw_sec=" + temp2.substring(6,8)); //Digital.getSeconds()); //
+				document.DPform.date.value = "";
+				document.DPform.time.value = "";
+		} else {
+			xmlhttp.send("comm=" + command + "&formID=gw_dp&canID=122211&loginID=22222&END=2" +
+				"&n=" + document.DPform.n.value); // unit name
+		}
+		
+	}
+
+}
+
+function setPcTime(){
+	var Digital = new Date();
+	var h, m, s, y, mo, d;
+	d = Digital.getDate();
+	if (d < 10)
+		d = "0" + d;
+	mo = Digital.getMonth() + 1;
+	if (mo  < 10)
+		mo = "0" + mo;
+	h = Digital.getHours();
+	if (h < 10)
+		h = "0" + h;
+	m = Digital.getMinutes();
+	if (m < 10)
+		m = "0" + m;
+	s = Digital.getSeconds();
+	if (s < 10)
+		s = "0" + s;
+
+	var yr = Digital.getYear();
+	if (yr < 1900) { yr+=1900; } 
+
+	document.DPform.date.value = d + "-" + mo + "-" + yr;
+	document.DPform.time.value = h + ":" + m + ":" + s;
+}
+////////////////////////////////////////////////////
+// private "callback" function. 
+////////////////////////////////////////////////////
+ function updatepageGW_LP(str){ 
+	var temp;
+	var response  = str.documentElement;
+	
+	document.DPform.btn.disabled=false;
+	
+	if (response == null ) {
+		window.location = "/login.html";
+		return;
+	}
+	if (response.getElementsByTagName('n')[0] != null) 
+		document.DPform.n.value = response.getElementsByTagName('n')[0].firstChild.data; // gateway name
+	document.DPform.serTime.value = "The current WebServer time is:   " + response.getElementsByTagName('gw_hour')[0].firstChild.data + ":" + 
+	response.getElementsByTagName('gw_min')[0].firstChild.data + ":" + 
+	response.getElementsByTagName('gw_sec')[0].firstChild.data + ", " + response.getElementsByTagName('gw_day')[0].firstChild.data + "-" + 
+	response.getElementsByTagName('gw_month')[0].firstChild.data + "-" + 
+	response.getElementsByTagName('gw_year')[0].firstChild.data ;
+	
+	receivedTime = true;
+}
+
+</script>
+
+<script type="text/javascript" charset="UTF-8" src="cooltreepro_uncompressed.js"></script>
+<script type="text/javascript" charset="UTF-8" src="tree_format.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cgi-bin/cgiLeftMenu"></script>
+<script type="text/javascript" charset="UTF-8" src="tree_format_setup.js"></script>
+<script type="text/javascript" charset="UTF-8" src="popUps.js"></script>
+<script type="text/javascript" charset="UTF-8" src="validation.js"></script>
+
+<meta http-equiv="Page-Enter" content="blendTrans(Duration=2)"/>
+<meta http-equiv="Site-Exit" content="blendTrans(Duration=5)"/>
+</head>
+
+<body>
+
+
+
+<div id="wrapper">
+<!--<p id="headline">&copy; ImedSecure.</p>-->
+<div id="header">
+<script type="text/javascript" src="header.js"></script>
+</div>
+<div id="content">
+
+<!--	  GateWay device parameters setup -->
+
+<table id="mytable" cellspacing="0">
+<caption><img src="images/page_white_wrench.png" width="16" height="16" alt="" align="top"/>    Gateway device parameters      </caption>
+
+<form name="DPform" action="javascript:setParamsGW_LP('cgi-bin/cgiCommonData','w')">
+<table class="title"><tr><td>Unit location/Id</td></tr></table>
+	<table class="tablecontent">
+	<tr><th class="spec">Location/Id:</th><td><input type="text" class="text" id="n" onchange="javascript:vT(this)" MAXLENGTH="23"></td><td></td><tr>
+		</table>
+	
+<table class="title"><tr><td><input type="text" class="textTime" id="serTime"></td></tr></table>
+		<table class="tablecontent">
+		<tr><th class="spec">Set new Date:</th><td><input type="text" class="text" id="date" value="" onclick="javascript:setPcTime()" onchange="javascript:vD(this)"/></td><td>&nbsp;dd-mm-yyyy</td><tr>
+		<tr><th class="spec">Set new Time:</th><td><input type="text" class="text" id="time" value="" onchange= "javascript:vTi(this)"/></td><td>&nbsp;hh:mm:ss</td><tr>
+		</table>
+
+
+
+<div id="contentfooter" style="padding-left:30px;">	
+<input type=submit value="Save" title="Store parameters" class="btn" id="btn" onmouseover='this.className="btn btnhov"' onmouseout='this.className="btn"'>
+</div>	
+</form>	
+</table>
+</div><!-- content -->
+
+<div id="menu">
+<script type="text/javascript">
+var tree1 = new COOLjsTreePRO("tree1", TREE_NODES, TREE_FORMAT);
+tree1.init();
+</script>			
+</div>
+
+<div id="footer">
+<script type="text/javascript" src="footer.js"></script>
+</div>
+</div><!-- wrapper -->
+<script type="text/javascript">
+setPcTime();
+</script>
+</body>
+</html>
+
+
+

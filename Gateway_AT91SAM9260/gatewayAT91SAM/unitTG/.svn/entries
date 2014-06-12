@@ -1,0 +1,41 @@
+9
+
+dir
+32
+svn+ssh://ssh.domeneshop.no/home/1/s/secicno/www/SVN/repository/Elreg/gateway_AT91SAM/gatewayAT91SAM/unitTG
+svn+ssh://ssh.domeneshop.no/home/1/s/secicno/www/SVN/repository/Elreg/gateway_AT91SAM
+
+
+
+2010-08-23T12:35:03.906726Z
+32
+secicno
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+265ececc-696b-402f-86db-95f09d7ec162
+
+
+
+
+
+
+0
+
+model
+dir
+
+utility
+dir
+

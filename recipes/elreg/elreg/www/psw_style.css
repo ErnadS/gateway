@@ -1,0 +1,117 @@
+html, body {
+	height: 100%;         /* required */
+}
+body {
+	font-family:Verdana, Arial, Helvetica, sans-serif ;
+	background: #fff url(background.jpg) bottom repeat-x;
+	margin: 0 ;
+	padding: 0;
+	overflow: hidden;
+	text-align:center;
+}
+#top,#bottom{
+height: 10px;
+background: #F1F3F5 url(border.png) bottom repeat-x;  
+ }
+
+
+ 
+ 
+#main {
+
+position: relative;
+	text-align: left;     /* horizontal centering hack for IE */
+	/*height: 200px; */        /* required - desired height */
+	
+
+	margin: 0 auto;       /* required */
+	clear: left;          /* required */
+	overflow: hidden;
+	
+	
+    
+    margin-top:60px;
+    
+	/*border: 1px solid #cccccc;*/
+	width: 300px;
+	background: #F1F3F5;
+    font-family:Verdana, Arial, Helvetica, sans-serif ;
+    font-weight:bold;
+    font-size : 12px;
+}
+
+form {
+    margin-left: 100px;
+	border: 1px solid #cccccc;
+	width: 160px;
+	background: #E9ECEF;
+    font-family:Verdana, Arial, Helvetica, sans-serif ;
+    font-weight:bold;
+    font-size : 12px;
+    padding:5px;
+    margin-bottom:10px;
+}
+
+#result {
+    margin-left: 100px;
+	border: 1px solid #cccccc;
+	width: 160px;
+	background: #E9ECEF;
+    font-family:Verdana, Arial, Helvetica, sans-serif ;
+    font-weight:bold;
+    font-size : 12px;
+    padding:5px;
+    margin-bottom:50px;
+}
+
+.text {
+	border: 1px solid #cccccc;
+}
+
+input {
+    border: 0px solid #cccccc;
+}
+
+.values{
+  font-family: verdana;
+  font-weight:normal;
+  font-size : 10px;
+  align:top;
+  vertical-align:top;
+}
+
+.key{
+  font-family: verdana;
+  font-weight:bold;
+  font-size : 12px;
+  padding-bottom:15px;
+}
+
+
+.caption{
+    font-family:Verdana, Arial, Helvetica, sans-serif ;
+    font-weight:bold;
+    margin:10px;
+    font-size : 14px;
+    color:#C64934;
+}
+
+#icon{
+    width:100px;
+    height:100px;
+    float:left;
+    background-image:url(lock.png);
+    background-repeat: no-repeat;
+    background-position:center center;
+}
+
+
+#source{
+  text-align:right;
+  align:right;
+  padding-right:10px;
+  font-family:Verdana, Arial, Helvetica, sans-serif ;
+  font-weight:normal;
+  font-size : 10px;
+  color:#CCCCCC;
+}

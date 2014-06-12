@@ -1,0 +1,347 @@
+/*
+ * dataLogerLogic.c
+ *
+ *  Created on: 19. mai 2010
+ *      Author: Ernad
+ */
+#include "../utility/paramUtil.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "dataLogerLogic.h"
+#include "../unitGW/model/gwDataLoger.h"
+#include "../can/canInterface.h"
+#include "../unitGW/utility/gwDataLogerUtility.h"
+#include "../unitGW/model/linkedList/deviceLinkedList.h"
+#include "../services/sysTime.h"
+#include "../unitGW/model/device.h"
+#include "../config.h"
+#include "../webModule/socketClientPipe.h"
+#include <sys/types.h>
+#include <dirent.h>
+
+// USED BY cgiSwitchoverMeasur
+char * messageTextTg[] = { "Temperature", "Load Current", "Insulation" };
+char * messageTextSw[] = { "Prioritized supply", "Secondary supply 1", "Secondary supply 2",
+		"IT net" };
+
+//int logTimer[10];
+
+DEV_MEASSUR_TASK * devMeassuringsTask;
+unsigned char percent[] = { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60,
+		65, 70, 75, 80, 85, 90, 95 };
+
+void dataLogerLogic_checkUnit(int unitIndex);
+int dataLogerLogic_addLogLine(DEV* dev, int i, int j, char* buffer, int devider);
+//int dataLogerFile_initFiles();
+int dataLogerLogic_readFile(int nPos, int nCanAddress);
+int dataLogerLogic_updateStructFromBuffer(int nPos, char* bufferRec,
+		char* separator);
+int dataLogerLogic_getIndex(int nCanAddress);
+
+void dataLogerLogic_init(void) {
+	int i;
+	devMeassuringsTask = gwDagaLogerUtility_getStruct();
+	//dataLogerFile_initFiles();
+	for (i = 0; i < MAX_LOG_TASKS; i++) {
+		devMeassuringsTask[i].timer = devMeassuringsTask[i].per * 10;
+
+		if (devMeassuringsTask[i].adr <= 0)
+			devMeassuringsTask[i].timer = -1;
+	}
+}
+
+void dataLogerLogic_removeCanID(int id) {
+	gwDataLogerUtility_removeCanID(id);
+}
+
+int dataLogerLogic_readFile(int nPos, int nCanAddress) {
+	int i = 0;
+	int maxSize = 500;
+	char buff[maxSize];
+	char temp[35];
+	sprintf(temp, "/gateway/log/logUnit%d", nCanAddress);
+	FILE * hFile;
+	hFile = fopen(temp, "r");
+	if (hFile == NULL) {
+		return 0;
+	}
+
+	int c;
+	while ((c = fgetc(hFile)) != EOF && i < maxSize) {
+		buff[i++] = (char) c;
+	}
+	buff[i] = 0;
+	fclose(hFile);
+
+	dataLogerLogic_updateStructFromBuffer(nPos, buff, "\n");
+
+	return 1;
+}
+
+int dataLogerLogic_updateStructFromBuffer(int nPos, char* bufferRec,
+		char* separator) {
+	int i;
+	int nLength = 0;
+	int buffRecPos = 0;
+	char paramName[MAX_PARAM_NAME_LENGTH];
+	char paramValue[MAX_PARAM_VALUE_LENGTH];
+
+	devMeassuringsTask[nPos].meassuringsList.structSize = 0;
+	devMeassuringsTask[nPos].meassuringsList.currentIndex = -1;
+
+	if (*bufferRec == 0)
+		return -1;
+
+	for (i = 0; i < MAX_LOG_LINES;) {
+		nLength = paramUtil_getNextParam(&bufferRec[buffRecPos], separator,
+				paramName, paramValue);
+		if (nLength < 0)
+			break; // TODO: return -1 ???
+
+		if (strcmp(paramName, "t") == 0) { // time
+			strcpy(
+					devMeassuringsTask[nPos].meassuringsList.measStruct[i].measTime,
+					paramValue);
+			devMeassuringsTask[nPos].meassuringsList.measStruct[i].measTime[19]
+					= 0; // TODO: not elegant soulution
+			devMeassuringsTask[nPos].meassuringsList.structSize++;
+			devMeassuringsTask[nPos].meassuringsList.currentIndex++;
+			if (devMeassuringsTask[nPos].meassuringsList.currentIndex
+					== MAX_LOG_LINES)
+				devMeassuringsTask[nPos].meassuringsList.currentIndex = 0;
+		} else if (strcmp(paramName, "m") == 0) { // msg id
+			devMeassuringsTask[nPos].meassuringsList.measStruct[i].msgId
+					= atoi(paramValue);
+		} else if (strcmp(paramName, "v") == 0) { // value
+			devMeassuringsTask[nPos].meassuringsList.measStruct[i].measValue
+					= atof(paramValue);
+			i++;
+		}
+
+		if (nLength == 0)
+			break;
+		buffRecPos += nLength;
+	}
+
+	return 1;
+}
+
+
+int dataLogerLogic_getExcel(int nCanAddress, int nMsgId, char* bufferXML) {
+	int i;
+	int j;
+	int devider = 1;
+	char * buffer = bufferXML;
+	DEV * dev = deviceLinkedList_getDevice(nCanAddress);
+	int nOffset = 0;
+	//DEV_MEASSUR_LIST devMeasList;
+	char temp[200];
+	char msgTypeText[30];
+
+	strcpy(buffer, "<TABLE>");
+	nOffset += 7;
+
+	for (i = 0; i < MAX_LOG_TASKS; i++) {
+		if (devMeassuringsTask[i].adr == nCanAddress
+				&& devMeassuringsTask[i].msid == nMsgId) {
+			if (dev->type == TG) {
+				strcpy(msgTypeText, messageTextTg[nMsgId]);
+				if (nMsgId == 0) 		// temperature
+					devider = 10;
+				else if (nMsgId == 1) 	// load
+					devider = 100;
+			} else if (dev->type == SW) {
+				strcpy(msgTypeText, messageTextSw[nMsgId]);
+			} else if (dev->type == IL) {
+				devider = 1000;
+				sprintf(msgTypeText, "Channel %d", (nMsgId + 1));
+			}
+
+			sprintf(
+					temp,
+					"<TR><TD><b>UNIT:</b></TD><TD>%s</TD></TR><TR><TD><b>ADDRESS:</b></TD><TD>%d</TD></TR><TR><TD><b>Msg type:</b></TD><TD>%s</TD></TR>",
+					devName[dev->type], dev->adr, msgTypeText);
+			strcpy(&buffer[nOffset], temp);
+			nOffset = strlen(buffer);
+
+			strcpy(&buffer[nOffset],
+					"<TR><TD><b>Time</b></TD><TD>Date</TD><TD></TD><TD><b>Value</b></TD></TR>");
+			nOffset = strlen(buffer);
+
+			if (devMeassuringsTask[i].meassuringsList.structSize
+					< MAX_LOG_LINES) {
+				for (j = 0; j
+						< devMeassuringsTask[i].meassuringsList.currentIndex; j++) {
+					nOffset += dataLogerLogic_addLogLine(dev, i, j,
+							&buffer[nOffset], devider);
+				}
+			} else {
+				for (j = devMeassuringsTask[i].meassuringsList.currentIndex; j
+						< MAX_LOG_LINES; j++) {
+					nOffset += dataLogerLogic_addLogLine(dev, i, j,
+							&buffer[nOffset], devider);
+				}
+
+				for (j = 0; j
+						< devMeassuringsTask[i].meassuringsList.currentIndex; j++) {
+					nOffset += dataLogerLogic_addLogLine(dev, i, j,
+							&buffer[nOffset], devider);
+				}
+			}
+			break;
+		}
+	}
+	strcpy(&buffer[nOffset], "</TABLE>");
+	nOffset += 8;
+	return nOffset;
+}
+
+int dataLogerLogic_addLogLine(DEV* dev, int i, int j, char* buffer, int devider) {
+	int nOffset = 0;
+	char temp[100];
+	char temp2[11];
+	// ADD TIME
+	memcpy(temp2,
+			&devMeassuringsTask[i].meassuringsList.measStruct[j].measTime[9],
+			10);
+	temp2[10] = 0;
+
+	sprintf(temp, "<TR><TD>%s</TD>", temp2);
+	nOffset = strlen(temp);
+	// ADD DATE
+	memcpy(temp2, devMeassuringsTask[i].meassuringsList.measStruct[j].measTime,
+			8);
+	temp2[8] = 0;
+
+	sprintf(&temp[nOffset], "<TD>%s</TD><TD></TD>", temp2);
+	strcpy(buffer, temp); //measLog[i].measStruct[j].measTime);
+	nOffset = strlen(temp); // old: 19
+
+	// ADD MEASSURMENT
+	//int ind = devMeassuringsTask[i].meassuringsList.measStruct[j].msgId;
+
+	if(devider == 1) {
+		sprintf(temp, "<TD>%lu</TD></TR>", devMeassuringsTask[i].meassuringsList.measStruct[j].measValue);
+	} else if(devider == 10) {
+		sprintf(temp, "<TD>%.1f</TD></TR>", (float)devMeassuringsTask[i].meassuringsList.measStruct[j].measValue / devider);
+	} else if(devider == 100) {
+		sprintf(temp, "<TD>%.2f</TD></TR>", (float)devMeassuringsTask[i].meassuringsList.measStruct[j].measValue / devider);
+	} else if(devider == 1000) {
+		sprintf(temp, "<TD>%.3f</TD></TR>", (float)devMeassuringsTask[i].meassuringsList.measStruct[j].measValue / devider);
+	}
+	strcpy(&buffer[nOffset], temp);
+	nOffset += strlen(temp);
+
+	return nOffset;
+}
+
+void dataLogerLogic_checkTimers(void) {
+	int i;
+	for (i = 0; i < 10; i++) {
+		if (devMeassuringsTask[i].timer > 0)
+			devMeassuringsTask[i].timer -= 1; // minus 1 sec
+
+		if (devMeassuringsTask[i].timer == 0) {
+			devMeassuringsTask[i].timer = (devMeassuringsTask[i].per + 1) * 10;
+			dataLogerLogic_checkUnit(i);
+		}
+	}
+}
+
+void dataLogerLogic_checkUnit(int unitIndex) {
+	socketClientPipe_setMutex();
+	int unitAddress = devMeassuringsTask[unitIndex].adr;
+
+	if (unitAddress <= 0) {
+		socketClientPipe_clearMutex();
+		return;
+	}
+
+	DEV* dev = deviceLinkedList_getDevice(unitAddress);
+
+	if (dev == NULL) {
+		socketClientPipe_clearMutex();
+		printf("ERROR: Cannot log for device: %d. Not found\n", unitAddress);
+		return;
+	}
+
+	if (dev->enab != 1) {
+		socketClientPipe_clearMutex();
+		printf("ERROR: Cannot log for device: %d. Not enabled\n", unitAddress);
+		return;
+	}
+
+	unsigned long fCanValue = canInterface_getValue(dev, devMeassuringsTask[unitIndex].msid);
+
+	socketClientPipe_clearMutex();
+
+	if (fCanValue == ERROR_CAN) {
+		printf("ERRPR: receviced ERROR_CAN for device: %d\n", unitAddress);
+		//TODO: Log ERROR ???
+		return;
+	}
+
+	int nPreviousIndex =
+			devMeassuringsTask[unitIndex].meassuringsList.currentIndex - 1;
+	if (nPreviousIndex < 0)
+		nPreviousIndex = MAX_LOG_LINES - 1;
+
+	unsigned long lastVal;
+	if (devMeassuringsTask[unitIndex].meassuringsList.structSize <= 0) {
+		lastVal = -1000;
+	}
+	else
+		lastVal
+				= devMeassuringsTask[unitIndex].meassuringsList.measStruct[nPreviousIndex].measValue;
+
+	if ((fCanValue >= lastVal * (1 + (unsigned long) percent[devMeassuringsTask[unitIndex].chan] / 100))
+			|| (fCanValue <= lastVal * (1 - (unsigned long) percent[devMeassuringsTask[unitIndex].chan] / 100))) {
+		char time[9];
+		char date[11];
+
+		sysTime_toString(date, time);
+
+		// set value
+		devMeassuringsTask[unitIndex].meassuringsList.measStruct[devMeassuringsTask[unitIndex].meassuringsList.currentIndex].measValue
+				= fCanValue;
+		// set time
+		strcpy(
+				devMeassuringsTask[unitIndex].meassuringsList.measStruct[devMeassuringsTask[unitIndex].meassuringsList.currentIndex].measTime,
+				time);
+		devMeassuringsTask[unitIndex].meassuringsList.measStruct[devMeassuringsTask[unitIndex].meassuringsList.currentIndex].measTime[8]
+				= ' ';
+		strcpy(
+				&devMeassuringsTask[unitIndex].meassuringsList.measStruct[devMeassuringsTask[unitIndex].meassuringsList.currentIndex].measTime[9],
+				date);
+		// set msg ID
+		devMeassuringsTask[unitIndex].meassuringsList.measStruct[devMeassuringsTask[unitIndex].meassuringsList.currentIndex].msgId
+				= devMeassuringsTask[unitIndex].msid;
+
+		devMeassuringsTask[unitIndex].meassuringsList.currentIndex++;
+		if (devMeassuringsTask[unitIndex].meassuringsList.currentIndex
+				== MAX_LOG_LINES)
+			devMeassuringsTask[unitIndex].meassuringsList.currentIndex = 0;
+
+		if (devMeassuringsTask[unitIndex].meassuringsList.structSize
+				< MAX_LOG_LINES)
+			devMeassuringsTask[unitIndex].meassuringsList.structSize++;
+	}
+}
+/*
+void dataLogerLogic_updateLog(int nCanAddress, meassuringStruct * resultMeas) {
+	int i;
+
+	for (i = 0; i < MAX_LOG_TASKS; i++) {
+		if (devMeassuringsTask[i].adr == nCanAddress) {
+			devMeassuringsTask[i].meassuringsList.currentIndex++;
+			if (devMeassuringsTask[i].meassuringsList.currentIndex
+					== MAX_LOG_LINES)
+				devMeassuringsTask[i].meassuringsList.currentIndex = 0;
+			memcpy(
+					&devMeassuringsTask[i].meassuringsList.measStruct[devMeassuringsTask[i].meassuringsList.currentIndex],
+					resultMeas, sizeof(meassuringStruct));
+			break;
+		}
+	}
+}*/
