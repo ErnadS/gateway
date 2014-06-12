@@ -8,7 +8,6 @@
 
 #include "webModule/socketServer.h"
 
-
 #include <stdio.h>
 #include <fcntl.h>
 //#include "pipeHandler.h"
@@ -70,9 +69,8 @@
 #include "services/myMail.h"
 #include "log/dataLogerLogic.h"
 
-
 /////////////////////////////////////////////////////////////////////
-char softwareVersion[] = {"R.2.11"};
+char softwareVersion[] = { "R.2.12" };
 
 ////////////////////////////////////////////////////
 // RELEASE NOTES:
@@ -144,7 +142,6 @@ char softwareVersion[] = {"R.2.11"};
 // 4. changed gwSetupDataloger.html
 //#############################################
 
-
 //#############################################
 // R.2.08:  10.02.2013
 //
@@ -153,7 +150,6 @@ char softwareVersion[] = {"R.2.11"};
 // 3. dataLogerLogic_onChangedStruct()  // new line when changed loging task
 
 //#############################################
-
 
 //#############################################
 // R.2.09:  03.04.2013
@@ -176,14 +172,18 @@ char softwareVersion[] = {"R.2.11"};
 // Support for Finnish language
 ///////////////////////////////////////////////
 
+//#############################################
+// R.2.12:  13.06.2014
+// Removed finnish language
+// Added "no-cach" to device monitoring
+// Added removing of "DEV_FILE_PATH" when button "factory"
+///////////////////////////////////////////////
+
 void * startServer(void *ptr);
 //void * canThreadTask(void *ptr);
 void * runTick(void *ptr);
 
 //void CheckReadSDO(CO_Data* d, unsigned char nodeid);
-
-
-
 
 int main(void) {
 	int nButtonCounter = 0;
@@ -206,17 +206,15 @@ int main(void) {
 
 	char softVerString[100];
 
-	sprintf(softVerString, "********* version %s ************", softwareVersion);
-
+	sprintf(softVerString, "********* version %s ************",
+			softwareVersion);
 
 	openlog("GW", LOG_PID, LOG_USER);
 	setlogmask(LOG_MASK(LOG_ERR));
 
-
 	syslog(LOG_ERR, "****************************************");
 	syslog(LOG_ERR, "********  GATEWAY START  ***************");
 	syslog(LOG_ERR, softVerString);
-
 
 	printf("********  GATEWAY START  ***************\n");
 	printf(softVerString);
@@ -238,24 +236,24 @@ int main(void) {
 	sprintf(pingCommand, "ping -c 1 %s", defaultGateway);
 	/////////////////////////////////////////////////
 	// MAIL TEST:
-/*	char mailErrCode[300];
-	int nMailResult = email_sendToAll("test", "/gateway/alarm/a_2013_02_08_11_52_46_0", mailErrCode, 300);
-		if (nMailResult != SMTP_OK) {
-			if (nMailResult == MAIL_DISABLED)
-				printf("Cannot send mail, disabled\n");
-			else
-				printf("Err sending mail: %s\n", mailErrCode);
-		} else {
-			printf("E-mail sent\n");
-		}
+	/*	char mailErrCode[300];
+	 int nMailResult = email_sendToAll("test", "/gateway/alarm/a_2013_02_08_11_52_46_0", mailErrCode, 300);
+	 if (nMailResult != SMTP_OK) {
+	 if (nMailResult == MAIL_DISABLED)
+	 printf("Cannot send mail, disabled\n");
+	 else
+	 printf("Err sending mail: %s\n", mailErrCode);
+	 } else {
+	 printf("E-mail sent\n");
+	 }
 
-*/
+	 */
 	FILE * hFile;
 	hFile = fopen(MEASURE_FOLDER, "r");
 	if (hFile == NULL) { // FILE NOT EXIST, CREATE
 		//struct stat st;
 		//if (stat("/gateway", &st) != 0) {
-			mkdir(MEASURE_FOLDER, 0777);
+		mkdir(MEASURE_FOLDER, 0777);
 		//}
 	}
 	if (hFile != NULL) {
@@ -290,41 +288,40 @@ int main(void) {
 	/// MOD BUS MASTER SIMULATOR
 	////////////////////////////////////////////////
 	/*modbus_t* mb;
-	int rc;
-	//mb = modbus_new_rtu("/dev/ttyS1", 9600, 'N', 8, 1, 7);
-	printf("ENO TEST\n");
-	mb = modbus_new_rtu("/dev/ttyS1", 9600, 'N', 8, 1, 7);
-	mb->debug = 1;
-	rc = modbus_connect(mb);
-	if (rc != 0) {
-		printf("MODBUS error opening ttyS1\n");
-	}
-	unsigned char tab_reg[10];
-	modbus_set_slave(mb, 2);
-	while (1) {
-		sleep(1);
-	rc = modbus_read_bits(mb, 0, 1, tab_reg);
-	if (rc <= 0) {
-		printf("MODBUS read failed\n");
-	} else {
-		if (rc == 1) {
-			if (tab_reg[0] == 0) {
-				printf("MODBUS: NOT ALARM\n");
-			} else {
-				unsigned char newValue = 0;
-				printf("!!!! MODBUS: ALARM\n");
-				rc = modbus_write_bits(mb, 0, 1, &newValue);
-				if (rc == 1)
-					printf("!!!! MODBUS SENT CLEAR ALARM\n");
-				else
-					printf("!!!! MODBUS SENT CLEAR ALARM but received: %u bytes\n", rc);
-			}
-		}
-	}
-	}
-*/
+	 int rc;
+	 //mb = modbus_new_rtu("/dev/ttyS1", 9600, 'N', 8, 1, 7);
+	 printf("ENO TEST\n");
+	 mb = modbus_new_rtu("/dev/ttyS1", 9600, 'N', 8, 1, 7);
+	 mb->debug = 1;
+	 rc = modbus_connect(mb);
+	 if (rc != 0) {
+	 printf("MODBUS error opening ttyS1\n");
+	 }
+	 unsigned char tab_reg[10];
+	 modbus_set_slave(mb, 2);
+	 while (1) {
+	 sleep(1);
+	 rc = modbus_read_bits(mb, 0, 1, tab_reg);
+	 if (rc <= 0) {
+	 printf("MODBUS read failed\n");
+	 } else {
+	 if (rc == 1) {
+	 if (tab_reg[0] == 0) {
+	 printf("MODBUS: NOT ALARM\n");
+	 } else {
+	 unsigned char newValue = 0;
+	 printf("!!!! MODBUS: ALARM\n");
+	 rc = modbus_write_bits(mb, 0, 1, &newValue);
+	 if (rc == 1)
+	 printf("!!!! MODBUS SENT CLEAR ALARM\n");
+	 else
+	 printf("!!!! MODBUS SENT CLEAR ALARM but received: %u bytes\n", rc);
+	 }
+	 }
+	 }
+	 }
+	 */
 	////////////////////////////////////////////////
-
 	////////////////////////////////////////////////
 	// MODBUS INIT
 	////////////////////////////////////////////////
@@ -336,7 +333,8 @@ int main(void) {
 		//"/dev/ttyS1", 19200, 'N', 8, 1
 		if (modBusInterf_start("/dev/ttyS1", gwModBus.br, gwModBus.p,
 				gwModBus.d, gwModBus.s, gwModBus.add) != 0) {
-			gwAlarmLogUtility_saveAndSendAlarmMsg(i, "ModBus", "Cannot start ModBus");
+			gwAlarmLogUtility_saveAndSendAlarmMsg(i, "ModBus",
+					"Cannot start ModBus");
 			syslog(LOG_ERR, "Critical error, cannot start ModBus\n");
 		}
 	} else {
@@ -370,7 +368,8 @@ int main(void) {
 
 	ret = pthread_create(&thread1, NULL, startServer, (void*) message1);
 	ret = pthread_create(&thread2, NULL, runTick, (void*) NULL);
-	ret = pthread_create(&threadAlarmHandler, NULL, runAlarmHandler, (void*) NULL);
+	ret = pthread_create(&threadAlarmHandler, NULL, runAlarmHandler,
+			(void*) NULL);
 	ret = pthread_create(&threadMail, NULL, runMailDispatcher, (void*) NULL);
 
 	//int alarmToRead = 0;
@@ -386,26 +385,25 @@ int main(void) {
 
 	OpenSystemController();
 
-	int  nTest= 0;
-unsigned char result ;
-char answ[60];
+	int nTest = 0;
+	unsigned char result;
+	char answ[60];
 
 	while (1) {
-/*
-		if (nTest == 10) {
-			canInterface_onReceivedAlarm(20, 0xF301, 0, 0x3000, 5);
-		}
-		else if (nTest == 20) {
+		/*
+		 if (nTest == 10) {
+		 canInterface_onReceivedAlarm(20, 0xF301, 0, 0x3000, 5);
+		 }
+		 else if (nTest == 20) {
 
-			canInterface_onReceivedAlarm(20, 0, 0, 0xF301, 2);
-		}
-		else if (nTest == 23)
-			canInterface_onReceivedAlarm(1, 0, 0, 0xfe, 0);
+		 canInterface_onReceivedAlarm(20, 0, 0, 0xF301, 2);
+		 }
+		 else if (nTest == 23)
+		 canInterface_onReceivedAlarm(1, 0, 0, 0xfe, 0);
 
-		nTest++;*/
+		 nTest++;*/
 
 		//watchDogInterface_keepAlive(); // TODO: will be used
-
 		///////////////////////////////////////
 		// if user is logging data
 		dataLogerLogic_checkTimers();
@@ -431,11 +429,11 @@ char answ[60];
 			}
 		}
 
-/*
-		if (timeToStartDevicesRefresh == 0) { // Counter is "0" => search devices
-			timeToStartDevicesRefresh = -1;
-			canInterface_refreshDevices();
-		}*/
+		/*
+		 if (timeToStartDevicesRefresh == 0) { // Counter is "0" => search devices
+		 timeToStartDevicesRefresh = -1;
+		 canInterface_refreshDevices();
+		 }*/
 
 		/////////////////////////////////////////////////
 		// Ping router each 60 sec to keep address
@@ -449,7 +447,7 @@ char answ[60];
 
 		/////////////////////////////////////////////////
 
-		if (nMeasFilesDeleteCount == 0) {  // overflow after 65535 sec => 18 hours
+		if (nMeasFilesDeleteCount == 0) { // overflow after 65535 sec => 18 hours
 			removeUnusedMeasureFiles();
 			nMeasFilesDeleteCount = 0;
 		}
@@ -457,15 +455,25 @@ char answ[60];
 		nMeasFilesDeleteCount++;
 		/////////////////////////////////////////////////
 
-		// Check reset button
+		// Check factory button
 		int nGpio = GetInput();
 		if (nGpio == 0) {
-			nButtonCounter ++;
+			nButtonCounter++;
 			if (nButtonCounter >= 3) {
-				if( remove( PASS_FILE_PATH ) != 0 )
-					printf( "Error deleting password file" );
+				if (remove(PASS_FILE_PATH) != 0)
+					printf("Error deleting password file");
 				nButtonCounter = 0;
 				passFile_init();
+
+				if (remove(DEV_FILE_PATH) != 0)
+					printf("Error deleting devices monitoring file");
+				else {
+					FILE * hFile;
+					hFile = fopen(DEV_FILE_PATH, "w");
+					if (hFile != NULL) {
+						fclose(hFile);
+					}
+				}
 
 				GW_DHCP pdhcpStruct;
 				gwDhcpUtility_clearStruct(&pdhcpStruct);
@@ -494,9 +502,9 @@ void * startServer(void *ptr) {
 }
 
 void * runTick(void *ptr) {
-	while(1) {
+	while (1) {
 		if (timeToStartDevicesRefresh > 0) { // decrease counter. Cannot be done by main thread because of time used for sending of mail
-			timeToStartDevicesRefresh --;
+			timeToStartDevicesRefresh--;
 			if (timeToStartDevicesRefresh == 0) { // Counter is "0" => search devices
 				timeToStartDevicesRefresh = -1;
 				canInterface_refreshDevices();
