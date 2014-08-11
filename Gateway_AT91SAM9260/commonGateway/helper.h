@@ -12,8 +12,8 @@
 
 
 /*  Function declarations  */
-
-ssize_t Readline(int sockd, char *buffer, size_t maxlen);
+char* Readline(int sockd, ssize_t *count, size_t maxlen);
+// ssize_t Readline(int sockd, char **buffer, size_t maxlen);
 ssize_t Writeline(int fc, const void *vptr, size_t maxlen);
 
 

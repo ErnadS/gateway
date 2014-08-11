@@ -11,5 +11,5 @@ void sysTime_get(GW_TIME *timeStruct);
 int sysTime_toString(char* currDate, char* currTime);
 int sysTime_toString2(char* currDate, char* currTime);
 int sysTime_toString3(char* currDate, char* currTime);
-#endif /*PIPEHANDLER_H_*/
+#endif
 

@@ -12,6 +12,23 @@
 
 char* postRequest;
 
+
+void send_error(void) {
+	printf("Content-type: text/xml\n\n");
+	printf("<?xml version=\"1.0\" encoding=\"iso-8859-1\" standalone=\"yes\"?> <response>");
+							printf("<warn>Error</warn>");
+							printf("</response>");
+				fflush(stdout);
+}
+
+void send_error_response(void) {
+	printf("Content-type: text/xml\n\n");
+	printf("<?xml version=\"1.0\" encoding=\"iso-8859-1\" standalone=\"yes\"?> <response>");
+							printf("<warn>Wrong response from server</warn>");
+							printf("</response>");
+				fflush(stdout);
+}
+
 int main() {
 	int status = 0;
 	llist entries;
@@ -19,85 +36,77 @@ int main() {
 	status = read_cgi_input(&entries);
 
 	char* temp;
-	char postResult[50];
+	char* postResult = 0; //[50];
+	ssize_t retSize;
+
 	char postRequest[200];
 
-	int nConnRes;
+	int conn_s;
 
 	if (status > 0) {
-		nConnRes = connectToServer();
+		conn_s = connectToServer();
 
-		if (nConnRes != 1) {
+		if (conn_s < 1) {
 			printf("Content-type: text/xml\n\n");
+			printf("<?xml version=\"1.0\" encoding=\"iso-8859-1\" standalone=\"yes\"?> <response>");
+						printf("<warn>Error connecting to server</warn>");
+						printf("</response>");
+						/*
 			printf("<html> <head>\r\n");
 			printf("<title>HTML Page</title>\r\n");
 			printf("</head>\r\n<body>\r\n");
 			printf("<h1>HTML Page</h1>\r\n");
 			printf("<p>ERROR connecting to server: %d\r\n", nConnRes);
-			printf("</body></html>\r\n");
+			printf("</body></html>\r\n");*/
+			fflush(stdout);
 			return 0;
 		}
 
 		temp = cgi_val(entries, "psw");
 
-		sendCookie("0"); // usualy, first param is cookie. We don't have and send "0" to indicate loging
+		sendCookie(conn_s, "0"); // Usually the first parameter is cookie. We don't have and send "0" to indicate loging
 
 		sprintf(postRequest, "formID=cgiLog_in&END=2&psw=%s", temp);
-		getParam(postRequest, postResult, 50);
+		postResult = getParam(conn_s, postRequest, &retSize, 50);
 
-		if (strlen(postResult) > 1) { // "<LOG>Please, try later. To many users at the same time.</LOG>"
+		if (retSize <= 0 || postResult == 0)  {
+			send_error_response();
+			fflush(stdout);
+			list_clear(&entries);
+			closeSocket(conn_s);
+			return 0;
+		}
+
+		if (strlen(postResult) > 1) {
 			sprintf(postRequest, "Set-Cookie: cookievalue=%s\n", postResult);
 			printf(postRequest);
 
 			printf("Content-type: text/xml\n\n");
-			//printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n");
-						printf("<?xml version=\"1.0\" encoding=\"iso-8859-1\" standalone=\"yes\"?> <response>");
-						printf("<warn>OK</warn>");
-						printf("</response>");
-			/*printf("Content-type: text/html\n\n");
-			printf(
-					"<meta http-equiv=\"Refresh\" content=\"1; url=/index.htm\n\n\">");*/
+
+			printf("<?xml version=\"1.0\" encoding=\"iso-8859-1\" standalone=\"yes\"?> <response>");
+			printf("<warn>OK</warn>");
+			printf("</response>");
+
 		} else if (postResult[0] == '1') {
 			printf("Content-type: text/xml\n\n");
 			printf("<?xml version=\"1.0\" encoding=\"iso-8859-1\" standalone=\"yes\"?> <response>");
 			printf("<warn>To many users at the time. Please, try later.</warn>");
 			printf("</response>");
+		} else if (postResult[0] == '2') {
+			printf("Content-type: text/xml\n\n");
+			printf("<?xml version=\"1.0\" encoding=\"iso-8859-1\" standalone=\"yes\"?> <response>");
+			printf("<warn>Error 76.</warn>");
+			printf("</response>");
 		} else {
 			printf("Content-type: text/xml\n\n");
 			printf("<?xml version=\"1.0\" encoding=\"iso-8859-1\" standalone=\"yes\"?> <response>");
-			printf("<warn>Wrong password</warn>");
+			printf("<warn>Wrong password %s.</warn>", postResult);
 			printf("</response>");
 		}
 
-		//printf("SetCookie(\"lastvisited\", %ld, largeExpDate);\n",(unsigned long)tm);
-		//printf("Set-Cookie: CONTENT=\"cookievalue=xxx;expires=Friday, 31-Dec-10 23:59:59 GMT; path=/\">\n");
-		/*
-		 printf("Content-type: text/html");
-		 printf("<META HTTP-EQUIV=\"Set-Cookie\" CONTENT=\"cookievalue=xxx;expires=Friday, 31-Dec-10 23:59:59 GMT; path=/\">\n");
-		 printf("<meta http-equiv=\"Refresh\" content=\"1; url=http://192.168.121.3/tg_setup.htm\n\n\">"); */
-		//printf("Set-Cookie: CONTENT=\"cookievalue=xxx1;expires=Friday, 31-Dec-10 23:59:59 GMT; path=/\">\n");
+		free(postResult);
 
-
-		/*
-		 if (strcmp(temp, pass) == 0) {
-		 char chIP[50];
-		 char* IP = getenv("REMOTE_ADDR");
-		 strcpy(chIP,IP);
-		 sendIpAddress(chIP);//IP);
-		 getParam("comm=w&formID=log&canID=122211&loginID=22222&END=2&psw=Andy", postResult, MAX_LINE_LENGTH);
-
-		 printf("Set-Cookie: cookievalue=xxx1\n");
-		 printf("Content-type: text/html\n\n");
-
-		 printf("<meta http-equiv=\"Refresh\" content=\"1; url=/index.htm\n\n\">");
-
-		 }
-		 else {
-		 sendIpAddress(temp);
-		 printf("Content-type: text/html\n\n");
-		 printf("<meta http-equiv=\"Refresh\" content=\"1; url=../login.html\n\n\">");
-		 }*/
-		closeSocket();
+		closeSocket(conn_s);
 		list_clear(&entries);
 	}
 	return 1;

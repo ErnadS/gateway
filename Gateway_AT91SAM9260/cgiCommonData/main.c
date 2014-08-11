@@ -11,24 +11,16 @@
 #include "templateGateway.h"
 
 #include "socketClient.h"
-#include "trafoGuardPage.h"
+//#include "trafoGuardPage.h"
 #include <string.h>
 
 //#include <wchar.h>
 
 int main() {
 	llist entriesCookie;
-	/*int status;
 
-
-	 char currDate[80];
-	 char currTime[80];
-
-	 char **postvars = NULL; // POST request data repository
-	 char **getvars = NULL; // GET request data repository */
-	char postResult[150000];
-
-
+	// dynamic allocated. Must be "free" later.
+	char *postResult= NULL; //[150000];
 	char* postRequest;
 
 	//  ********************
@@ -51,7 +43,7 @@ int main() {
 	//////////////////////////////////////////////////////////////////////////////////////
 	//
 
-	// fungerer:
+	// Take a cookie from request. The same cookie must be sent to gateway before reading/writing parameters
 	parse_cookies(&entriesCookie);
 	char* cookiVal = cgi_val(entriesCookie, "cookievalue");
 	/*if (cookiVal == 0 || strcmp(cookiVal, "xxx1") != 0) {
@@ -66,93 +58,48 @@ int main() {
 
 	//status = read_cgi_input(&entries);
 
-	// !!!!printf("Content-type: text/html\n\n");
-	//	   printf("Content-type: text/plain\n\n");
 
-	printf("Content-type: text/xml\n\n"); // use this if sending XML
 
-	int nConnRes = connectToServer();
-	if (nConnRes > 0) {
-		printf("<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?> <response>");
-				//"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?> <response>");
-		/*char chIP[50];
-		 char* IP = getenv("REMOTE_ADDR");
-		 strcpy(chIP,IP);*/
-		sendCookie(cookiVal);//chIP);//IP);
-		getParam(postRequest, postResult, MAX_LINE_LENGTH);
-/*
- * char temPostResult[1301];
-		char* tempBuff = postResult;
-		int len = strlen(tempBuff);
+	ssize_t retSize;
 
-		while (len > 1300) {
-			memcpy(temPostResult, tempBuff, 1300);
-			temPostResult[1300] = 0;
-			printf(postResult);
-			tempBuff += 1300;
-			len -= 1300;
+	int conn_s = connectToServer();
+	if (conn_s > 0) {
+		// We must first send a cookie to gateway (or connection will be refused)
+		sendCookie(conn_s, cookiVal);
+		// !!!!!!!
+		// ES: best to make short pause after sending cookie to gateway (for at melding ikke blir limet sammen med parameter som sendes deretter)
+		printf("Content-type: text/xml\n\n"); // use this if sending XML
+
+		// and send parameters to gateway
+		postResult = getParam(conn_s, postRequest, &retSize, MAX_LINE_LENGTH);
+
+		if (retSize <= 0 || postResult == NULL) {
+			if (postRequest != NULL)
+				free(postRequest);
+
+			list_clear(&entriesCookie);
+			closeSocket(conn_s);
+			printf("<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?> <response>2error</response>");
+			return 0; //TODO: send some error msg?
 		}
-		if (tempBuff[0] != 0)
-			printf(tempBuff);*/
+
+		printf("<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?> <response>");
+
+
+		// getParam(postRequest, postResult, MAX_LINE_LENGTH);
+
 
 		printf(postResult);
 		printf("</response>");
-		closeSocket();
-		//list_clear(&entries);
+		closeSocket(conn_s);
 
 		fflush(stdout);
-
+		if (postResult != NULL)
+			free(postResult);
 	}
 	if (postRequest != NULL)
 		free(postRequest);
 	list_clear(&entriesCookie);
 	return 0;
 }
-/*
- void getEntries(llist entries)
- {
-
- node* nextNode = entries.head;
-
- while (nextNode != NULL) {
- if (nextNode->entry.name == NULL || nextNode->entry.value == NULL)
- return;
- getParam(nextNode->entry.name, nextNode->entry.value, 80);
- printf("<");
- printf(nextNode->entry.name);
- printf(">");
- printf(nextNode->entry.value);
- printf("</");
- printf(nextNode->entry.name);
- printf(">");
-
- nextNode = nextNode->next;
- }
- }
-
- void getTime(void)
- {
- getParams(entries.head->entry.name, currDate, currTime);
- printf("<time>");
- printf(currTime);
- printf("</time>");
- printf("<date>");
- printf(currDate);
- printf("</date>");
- }
-
- void tgGetUnitLocation(void)
- {
- char unitLoc[80];
- getParam("tgUnitLoc", unitLoc);
-
- printf("<tgUnitLoc>");
- printf(unitLoc);
- printf("</tgUnitLoc>");
- }
-
- void tgGetCanBusAddress(void)
- {
-
- }*/
 

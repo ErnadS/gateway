@@ -30,11 +30,11 @@ unsigned int treeNodes_addForUser(char* buffer, char admin);
 unsigned int treeNodes_addStart(char* buffer, char admin);
 
 unsigned int treeNodes_addTgLog(char* buffer, unsigned char adr,
-		unsigned char msid);
+		unsigned char msid, int nDevType);
 unsigned int treeNodes_addIlLog(char* buffer, unsigned char adr,
-		unsigned char msid);
+		unsigned char msid, int nDevType);
 unsigned int treeNodes_addSwLog(char* buffer, unsigned char adr,
-		unsigned char msid);
+		unsigned char msid, int nDevType);
 
 unsigned int treeNodes_addGatewayUnit(char* buffer, char admin);
 unsigned int treeNodes_addTgUnit(char* buffer, DEV* dev, char admin);
@@ -179,17 +179,17 @@ unsigned int treeNodes_addStart(char * buffer, char admin) {
 						printf("add log for TG\n");
 						nLength += treeNodes_addTgLog(&buffer[nLength],
 								devMeassuringsTask[i].adr,
-								devMeassuringsTask[i].msid);
+								devMeassuringsTask[i].msid, dev->type);
 					} else if (dev->type == IL) {
 						printf("add log for IL\n");
 						nLength += treeNodes_addIlLog(&buffer[nLength],
 								devMeassuringsTask[i].adr,
-								devMeassuringsTask[i].msid);
+								devMeassuringsTask[i].msid, dev->type);
 					} else if (dev->type == SW) {
 						printf("add log for SW\n");
 						nLength += treeNodes_addSwLog(&buffer[nLength],
 								devMeassuringsTask[i].adr,
-								devMeassuringsTask[i].msid);
+								devMeassuringsTask[i].msid, dev->type);
 					} else
 						printf("adding left menu, unknown device\n");
 				} else {
@@ -218,28 +218,28 @@ unsigned int treeNodes_addStart(char * buffer, char admin) {
 }
 
 unsigned int treeNodes_addTgLog(char* buffer, unsigned char adr,
-		unsigned char msid) { //DEV* dev) {
+		unsigned char msid, int nDevType) { //DEV* dev) {
 	char temp[300];
 	unsigned int nLength = 0;
 
 	sprintf(
 			temp,
-			",['TG adr: %d, %s', '/cgi-bin/cgiLog?adr=%d&msid=%d', null, {format:{folders:[null, null, \"/images/excel.png\"]}}]\n",
-			adr, messageTextTg[msid], adr, msid);
+			",['TG adr: %d, %s', '/cgi-bin/cgiLog?adr=%d&msid=%d&typ=%d', null, {format:{folders:[null, null, \"/images/excel.png\"]}}]\n",
+			adr, messageTextTg[msid], adr, msid, nDevType);
 	nLength += appendString(&buffer[nLength], temp);
 	//fputs(temp, hFile);
 
 	return nLength;
 }
 
-unsigned treeNodes_addIlLog(char* buffer, unsigned char adr, unsigned char msid) { //
+unsigned treeNodes_addIlLog(char* buffer, unsigned char adr, unsigned char msid, int nDevType) { //
 	char temp[300];
 	unsigned int nLength = 0;
 
 	sprintf(
 			temp,
-			",['IL adr %d, CH%d', '/cgi-bin/cgiLog?adr=%d&msid=%d', null, {format:{folders:[null, null, \"/images/excel.png\"]}}]\n",
-			adr, (msid + 1), adr, msid);
+			",['IL adr %d, CH%d', '/cgi-bin/cgiLog?adr=%d&msid=%d&typ=%d', null, {format:{folders:[null, null, \"/images/excel.png\"]}}]\n",
+			adr, (msid + 1), adr, msid, nDevType);
 	nLength += appendString(&buffer[nLength], temp);
 	//fputs(temp, hFile);
 
@@ -247,14 +247,14 @@ unsigned treeNodes_addIlLog(char* buffer, unsigned char adr, unsigned char msid)
 }
 
 unsigned int treeNodes_addSwLog(char* buffer, unsigned char adr,
-		unsigned char msid) { //
+		unsigned char msid, int nDevType) { //
 	char temp[300];
 	unsigned int nLength = 0;
 
 	sprintf(
 			temp,
-			",['SW adr: %d, %s', '/cgi-bin/cgiLog?adr=%d&msid=%d', null, {format:{folders:[null, null, \"/images/excel.png\"]}}]\n",
-			adr, messageTextSw[msid], adr, msid);
+			",['SW adr: %d, %s', '/cgi-bin/cgiLog?adr=%d&msid=%d&typ=%d', null, {format:{folders:[null, null, \"/images/excel.png\"]}}]\n",
+			adr, messageTextSw[msid], adr, msid, nDevType);
 	nLength += appendString(&buffer[nLength], temp);
 	//fputs(temp, hFile);
 

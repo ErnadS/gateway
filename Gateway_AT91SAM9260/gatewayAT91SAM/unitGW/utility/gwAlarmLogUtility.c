@@ -29,7 +29,7 @@ int fineNextFreeIndex(char * fileNameStart);
 int gwAlarmLogUtility_addFileToXML(char* alarmMsgBuff, int nIndex,
 		const char* fileName);
 
-int removedirectoryrecursively(const char *dirname);
+// int removedirectoryrecursively(const char *dirname);
 
 /*
  char gwAlarmLogUtility_saveAlarmMsg(char* alarmMsg) {

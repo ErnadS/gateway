@@ -81,6 +81,8 @@ pthread_mutex_t changingID_mutex;
 
 pthread_mutex_t webClient_mutex;
 
+// #define DEBUG_CLIENT
+
 ssize_t socketClientPipe_write(int sockd, const void *vptr, size_t nSize);
 void socketClientPipe_createErrorMsg(char* buffer, int* nLength, char canResult);
 void sigpipe_handler();
@@ -102,7 +104,7 @@ void socketClientPipe_handleRequest(int conn_s) {
 	socketClientPipe_readAllParams(conn_s);
 
 #ifdef DEBUG_CLIENT
-	printf("Closing connection to client\n");
+	printf("Closing connection to the client\n");
 #endif
 
 	if (close(conn_s) < 0) {
@@ -129,16 +131,22 @@ int socketClientPipe_readAllParams(int conn_s) {
 	memset(bufferRec, 0, MAX_REQUEST_LENGTH);
 
 	// Get Remote IP address
-	if (conn_s < 0) {
+	if (conn_s < 0 || soketOk != 1) {
 		printf("Error socketClientPipe_readAllParams\n");
 		return -1;
 	}
 	int nTotLength = Readline(conn_s, bufferRemoteIP, 39);
+	if (nTotLength < 1)
+		return -1;
 	bufferRemoteIP[nTotLength] = 0;
 #ifdef DEBUG_CLIENT
 	printf("Received Cookie: %s\n", bufferRemoteIP);
 #endif
+	if (soketOk != 1)
+		return -1;
 	nTotLength = Readline(conn_s, bufferRec, MAX_REQUEST_LENGTH - 1);
+	if (nTotLength < 1)
+			return -1;
 	bufferRec[nTotLength] = 0;
 	nLength = postHeader_getData(bufferRec, &postHeaderData);
 
@@ -150,8 +158,8 @@ int socketClientPipe_readAllParams(int conn_s) {
 	//////////////////////////////////////////////////////////
 	if (strcmp(bufferRemoteIP, "0") == 0) { // Login, Cookie not generated yet
 		if (strcmp(postHeaderData.formID, "cgiLog_in") == 0) {
-			char paramName[10];
-			char paramValue[20];
+			char paramName[MAX_PARAM_VALUE_LENGTH]; //10];
+			char paramValue[MAX_PARAM_NAME_LENGTH]; //20];
 			char cookie[40];
 			int nLoginState;
 			paramUtil_getNextParam(&bufferRec[nLength], "&", paramName,
@@ -191,8 +199,16 @@ int socketClientPipe_readAllParams(int conn_s) {
 	loginState = loginLogic_getLoginState(bufferRemoteIP);
 
 	if (loginState <= LOGIN_LEVEL_NOT_LOGED) {
+		int nSent;
 		printf("user is not logged in. Refused formID: %s\n",
 				postHeaderData.formID);
+		strcpy(bufferSend, "2");
+		nLength = 1;
+		if (conn_s >= 0) {
+			nSent = socketClientPipe_write(conn_s, bufferSend, nLength);
+			printf("Sent %d bytes\n", nSent);
+		}
+
 		return -1;
 	}
 
@@ -230,7 +246,7 @@ int socketClientPipe_readAllParams(int conn_s) {
 
 			if (postHeaderData.command == 'w') {
 				//////////////////////////////////////////////
-				////// CHECK IF CHANGED ID. CANNOT USE EXISTIN ID
+				////// CHECK IF CHANGED ID. CANNOT USE EXISTING ID
 				//////////////////////////////////////////////
 				if (postHeaderData.canID != tgSetupData.canBusAddr) {
 					if (deviceLinkedList_getDevice(
@@ -890,9 +906,12 @@ ssize_t socketClientPipe_write(int sockd, const void *vptr, size_t nSize) {
 	length[1] = nTempSize / 256;
 	length[2] = nTempSize - length[1] * 256;
 
-	write(sockd, length, 3); // old: 2
+	if (write(sockd, length, 3) != 3) // old: 2
+		return -1;
 
 	while (nSize > 0) {
+		if (soketOk != 1)
+				return -1;
 		if ((nwritten = write(sockd, buffer, nSize)) <= 0) {
 			if (errno == EINTR)
 				nwritten = 0;

@@ -1,0 +1,25 @@
+
+
+1. start console og gå til "/stuff"  (cd /stuff)
+2. switch to dash (!!! VIKTIG ellers oppstår rare problemer)
+sudo dpkg-reconfigure dash  (!!! Velg “No” hvis du får spørsmål)
+password for user ernad er “Ernad66”
+
+3. set path 
+export BBPATH=/stuff/build:/stuff/openembedded
+4. set path:
+export PATH=/stuff/bitbake/bin:$PATH 
+5. Clean:
+for å vare sikker, kjør først:
+bitbake -c clean elreg  (for å "clean" pakke med www filer, CGI ...)
+og deretter
+bitbake -c clean elregImage    (clean av helle RFS) 
+6. Kompiler
+bitbake elregImage   (komiler image for helle RFS (package "elreg" og alle andre linux filer)
+6. se på “jfs” file i folder:
+/stuff/tmp/deploy/glibc/images/at91sam9260e/
+7. !!! Det kan vare flere filer med samme navn. Se på dato
+
+Kopyer "Angstrom-elregImage-eglibc-ipk-v2014.06-at91sam9260ek.rootfs.jffs2"  og set i "distibutionFilesAutoiINstall_Kernel_RFS" og endre navn til "AngstromRFS.jffs2" (slett den gamle)
+
+9. Merk "distributionFilesAutoInstall_Kernel_RFS" og "distributionFilesManualInstall" og "Compress"

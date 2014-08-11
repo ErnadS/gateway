@@ -45,15 +45,21 @@ char gwSetupDeviceMonitor_createPage(void) {
 void gwSetupDeviceMonitor_addTableArguments(FILE * hFile) {
 	int i;
 	int nDevicesCount = deviceLinkedList_getSize();
-	char temp[300];
+	char temp[800];
 	DEV * dev;
 	printf("*** device count: %u\n", nDevicesCount);
+
+	if (nDevicesCount == 0) {
+		sprintf(temp, "Not found devices on CAN bus");
+		fputs(temp, hFile);
+		return;
+	}
 	for (i = 0; i < nDevicesCount; i++) {
 		dev = deviceLinkedList_getElementAt(i);
-		sprintf(temp, "<tr><th class=\"spec\" style=\"text-align:center;\"><input type=\"text\"  readonly=\"readonly\" name=\"adr%u\" value=\"%u\"></th><td class=\"alt\"> %s", i, dev->adr, devName[dev->type]);
+		sprintf(temp, "<tr><th class=\"spec\" style=\"text-align:center;\"><input type=\"text\"  readonly=\"readonly\" name=\"adr%u\" value=\"%u\"></th><td class=\"alt\"> %s", dev->adr, dev->adr, devName[dev->type]);
 		fputs(temp, hFile);
 
-		sprintf(temp, "</td><td class=\"center\"><input type=\"checkbox\" id=\"enab%u\"class=\"nobg\" name=\"\" checked>&nbsp;</td></tr>", i);
+		sprintf(temp, "</td><td class=\"center\"><input type=\"checkbox\" id=\"enab%u\" class=\"nobg\" name=\"\" checked>&nbsp;</td></tr>", dev->adr);
 		fputs(temp, hFile);
 	}
 }
@@ -62,55 +68,65 @@ void gwSetupDeviceMonitor_addSendArguments(FILE * hFile) {
 	int i;
 	int nDevicesCount = deviceLinkedList_getSize();
 	char temp[60];
+	DEV* dev;
 
 	for (i = 0; i < nDevicesCount; i++) {
-			sprintf(temp, "var enab%u;\n", i);
+		dev = deviceLinkedList_getElementAt(i);
+		if (dev != NULL) {
+			sprintf(temp, "var enab%u;\n", dev->adr);
 			fputs(temp, hFile);
-			sprintf(temp, "if (document.getElementById('enab%u').checked)\n", i);
+			sprintf(temp, "if (document.getElementById('enab%u').checked)\n", dev->adr);
 			fputs(temp, hFile);
 
-			sprintf(temp, "enab%u = 1;\n", i);
+			sprintf(temp, "enab%u = 1;\n",  dev->adr);
 			fputs(temp, hFile);
 
 			fputs("else\n", hFile);
-			sprintf(temp, "enab%u = 0;\n", i);
+			sprintf(temp, "enab%u = 0;\n",  dev->adr);
 			fputs(temp, hFile);
 		}
+	}
 
 
 	fputs("xmlhttp.send(\"comm=w&formID=gw_dm&canID=122211&loginID=22222&END=2\"", hFile);
 
 	for (i = 0; i < nDevicesCount; i++) {
-		sprintf(temp, "+ \"&enab\" + document.form_gwDM.adr%d.value + \"=\" + enab%d", i, i);
+		dev = deviceLinkedList_getElementAt(i);
+		sprintf(temp, "+ \"&enab\" + document.form_gwDM.adr%d.value + \"=\" + enab%d", dev->adr, dev->adr); //i, i);
 		fputs(temp, hFile);
 	}
 	//fputs("); window.location.reload(true);}}\n", hFile);
 	fputs("); }}\n", hFile);
 
-	fputs("function updatepageGW_DM(str){", hFile);
-	fputs("var temp;", hFile);
-	fputs("var response  = str.documentElement;", hFile);
-	fputs("if (response == null ) {", hFile);
-	fputs("alert(\"Error 2127\");", hFile);
-	fputs("return;}", hFile);
+	fputs("function updatepageGW_DM(str){\n", hFile);
+	fputs("var temp;\n", hFile);
+	fputs("var response  = str.documentElement;\n", hFile);
+	fputs("if (response == null || response.innerHTML == \"error\") {\n", hFile);
+	fputs("window.location = \"/login.html\"\n;", hFile);
+	fputs("return;\n}", hFile);
 }
+
 
 void gwSetupDeviceMonitor_addOnReceiveArguments(FILE * hFile) {
 	int nDevicesCount = deviceLinkedList_getSize();
 	int i;
 	char temp[100];
+	DEV* dev;
 
 	for (i = 0; i < nDevicesCount; i++) {
+		dev = deviceLinkedList_getElementAt(i);
+				if (dev != NULL) {
 		sprintf(
 				temp,
 				"if (response.getElementsByTagName('enab%d')[0].firstChild.data == \"1\")\n",
-				i);
+				dev->adr); //i);
 		fputs(temp, hFile);
-		sprintf(temp, "document.form_gwDM.enab%d.checked = true;\n", i);
+		sprintf(temp, "document.form_gwDM.enab%d.checked = true;\n", dev->adr); //);i);
 		fputs(temp, hFile);
 		fputs("else\n", hFile);
-		sprintf(temp, "document.form_gwDM.enab%d.checked = false;\n", i);
+		sprintf(temp, "document.form_gwDM.enab%d.checked = false;\n", dev->adr); //i);
 		fputs(temp, hFile);
+				}
 /*
 		sprintf(
 				temp,

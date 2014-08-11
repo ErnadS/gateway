@@ -27,16 +27,29 @@ int main() {
 		return 0;
 	}
 
-	int nConnRes = connectToServer();
-	if (nConnRes > 0) {
-		char postResult[200];
-		postResult[0] = 0;
-		//char* IP = getenv("REMOTE_ADDR");
-		sendCookie(cookiVal);//IP);
-		getParam("formID=help&END=2", postResult, 199);
+	ssize_t retSize;
+	int conn_s = connectToServer();
+
+	if (conn_s > 0) {
+		char *postResult = NULL; //[200];
+		//postResult[0] = 0;
+
+		// We must first send a cookie to gateway (or connection will be refused)
+		sendCookie(conn_s, cookiVal);//IP);
+		// ES: best to make short pause after sending cookie to gateway (for at melding ikke blir limet sammen med parameter som sendes deretter)
+		// Derfor sender vi her content type
+		printf("Content-type: text/html\n\n"); //send back html (web page)
+		postResult = getParam(conn_s, "formID=help&END=2", &retSize, 199);
+
+
+		if (retSize <= 0) {
+			list_clear(&entriesCookie);
+			closeSocket(conn_s);
+			return 0; //TODO: send some error msg?
+		}
 
 		if (postResult[0] != 0) {
-			printf("Content-type: text/html\n\n"); //send back html (web page)
+			// printf("Content-type: text/html\n\n"); //send back html (web page)
 			printf(
 					"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">");
 
@@ -114,21 +127,22 @@ int main() {
 			printf("</html>\n");
 
 		} else { // LOGIN_LEVEL_NOT_LOGED
+			free(postResult);
 			refuseUser();
 			list_clear(&entriesCookie);
 			return 0;
 		}
 
 		fflush(stdout);
-		closeSocket();
+		closeSocket(conn_s);
+		free(postResult);
 	}
 	list_clear(&entriesCookie);
 	return 0;
 }
 
 void refuseUser() {
-	printf("Content-type: text/html\n\n"); //send back html (web page)
-//	printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+	//printf("Content-type: text/html\n\n"); //send back html (web page)
 	printf(
 			"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">");
 	printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\" />\n");
