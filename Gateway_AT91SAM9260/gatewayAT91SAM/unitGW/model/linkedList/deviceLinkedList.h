@@ -17,4 +17,6 @@ DEV* deviceLinkedList_getElementAt(int pos);
 char deviceLinkedList_removeDevice(int devAddr);
 void deviceLinkedList_setFound(int nAddr, char bFound);
 
+DEV* deviceLinkedList_getDeviceByType(int devType);
+
 #endif /* GWDEVMONITLINKEDLIST_H_ */

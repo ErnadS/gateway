@@ -11,6 +11,7 @@
 unsigned GetInput(void);
 void setPowerLedOutput(unsigned high);
 int OpenSystemController(void);
-//void SetOutput(unsigned high);
+
+void setRTS(unsigned high);
 
 #endif /* MYGPIO_H_ */

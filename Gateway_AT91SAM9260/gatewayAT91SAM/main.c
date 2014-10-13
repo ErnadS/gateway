@@ -71,7 +71,7 @@
 
 
 /////////////////////////////////////////////////////////////////////
-char softwareVersion[] = { "R.3.00" };
+char softwareVersion[] = { "R.3.01" };
 
 ////////////////////////////////////////////////////
 // RELEASE NOTES:
@@ -186,6 +186,13 @@ char softwareVersion[] = { "R.3.00" };
 // Changed to lighttpd server
 ///////////////////////////////////////////////
 
+
+//#############################################
+// R.3.01:  13.10.2014
+// Problem in previous versions was a RAM (clock signal noise).
+// Fixed linked list problem
+// Fixed problem in SDO (can bus API)
+///////////////////////////////////////////////
 
 void * startServer(void *ptr);
 //void * canThreadTask(void *ptr);
