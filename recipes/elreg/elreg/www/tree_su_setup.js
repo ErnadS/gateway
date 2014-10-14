@@ -292,7 +292,7 @@ var TREE_SU_SETUP = [
 	
 	["</a><table class=\"title\"><tr><td>Menu language</td></tr></table><a>", null, null,{format:{expanded:true}},
 		["</a><table class=\"tablecontent\">\n"
-		+ "<tr><th class=\"spec\">Language:</th><td><input id=\"lan\" class=\"nobg\" name=\"Language\" type=\"radio\" checked value=\"1\">English<input class=\"nobg\" name=\"Language\" type=\"radio\" value=\"2\" >German<input class=\"nobg\" name=\"Language\" type=\"radio\" value=\"3\">Norwegian<input class=\"nobg\" name=\"Language\" type=\"radio\" value=\"4\">Finnish</td><tr>\n"
+		+ "<tr><th class=\"spec\">Language:</th><td><input id=\"lan\" class=\"nobg\" name=\"Language\" type=\"radio\" checked value=\"1\">English<input class=\"nobg\" name=\"Language\" type=\"radio\" value=\"2\" >German<input class=\"nobg\" name=\"Language\" type=\"radio\" value=\"3\">Norwegian</td><tr>\n"
 		+ "</table><a>", null, null]  
 	],
 
