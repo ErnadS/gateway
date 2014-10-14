@@ -397,6 +397,7 @@ unsigned char getSDOfreeLine ( CO_Data* d, unsigned char whoami, unsigned char *
 **
 ** Returns:
 **/
+/*
 unsigned char getSDOlineOnUse (CO_Data* d, unsigned char nodeId, unsigned char whoami, unsigned char *line)
 {
   unsigned char i;
@@ -406,6 +407,25 @@ unsigned char getSDOlineOnUse (CO_Data* d, unsigned char nodeId, unsigned char w
     if ( (d->transfers[i].state != SDO_RESET) &&
         (d->transfers[i].nodeId == nodeId) &&
           (d->transfers[i].whoami == whoami) ) 
+    {
+      *line = i;
+      return 0;
+    }
+  }
+  return 0xFF;
+}*/
+
+// Terje, 2014.10.13
+unsigned char getSDOlineOnUse (CO_Data* d, unsigned char nodeId, unsigned char whoami, unsigned char *line)
+{
+  unsigned char i;
+
+  for (i = 0 ; i < SDO_MAX_SIMULTANEOUS_TRANSFERTS ; i++)
+  {
+    if ( (d->transfers[i].state != SDO_RESET) &&
+        (d->transfers[i].state != SDO_ABORTED_INTERNAL) &&    //Bug fix T.S fixed SDO loop in some situations
+        (d->transfers[i].nodeId == nodeId) &&
+          (d->transfers[i].whoami == whoami) )
     {
       *line = i;
       return 0;

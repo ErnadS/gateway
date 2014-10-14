@@ -122,23 +122,24 @@ int gwDevMonitorUtility_updateListFromFileBuffer(char* bufferRec,
 int gwDevMonitorUtility_getXML(char* bufferXML) {
 	int i;
 	int nLength = 0;
+
 	int nDevCount = deviceLinkedList_getSize();
 	DEV* dev;
-	char parName[10];
+	//char parName[10];
+
 
 	for (i = 0; i < nDevCount; i++) {
 		dev = deviceLinkedList_getElementAt(i);
-		/*	sprintf(parName, "dev%u", i);
-		 nLength += xml_addTag(&bufferXML[nLength], parName, dev->dev);
+		if (dev != NULL) {
+			nLength += sprintf(&bufferXML[nLength], "<enab%u>%u</enab%u>", dev->adr, dev->enab, dev->adr);
 
-		 sprintf(parName, "adr%u", i);
-		 nLength += xml_addTag(&bufferXML[nLength], parName, dev->adr);
-		 */
-		sprintf(parName, "enab%u", i);
-		if (dev->enab == 1)
-			nLength += xml_addTag(&bufferXML[nLength], parName, "1");
-		else
-			nLength += xml_addTag(&bufferXML[nLength], parName, "0");
+
+			/*sprintf(parName, "enab%u%u", dev->enab, dev->adr);
+			if (dev->enab == 1)
+				nLength += xml_addTag(&bufferXML[nLength], parName, "1");
+			else
+				nLength += xml_addTag(&bufferXML[nLength], parName, "0");*/
+		}
 	}
 
 	return nLength;

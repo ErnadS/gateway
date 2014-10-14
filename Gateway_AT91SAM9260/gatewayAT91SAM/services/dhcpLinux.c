@@ -184,12 +184,9 @@ char dhcpLinux_saveResolvConf(GW_DHCP dhcp) {
 
 	if (dhcp.dns[0] != 0) {
 		fputs(dhcp.dns, hFile);
-		printf("a\n");
 	} else if (dhcp.gat[0] != 0) {
 		fputs(dhcp.gat, hFile);
-		printf("b\n");
 	}
-	printf("c\n");
 	fputs("\n", hFile);
 
 	fclose(hFile);

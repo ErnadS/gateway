@@ -18,16 +18,11 @@
 int main() {
 	llist entriesCookie;
 
-	char postResult[30000];
-	postResult[0] = 0;
-	postResult[1] = 0;
-/*	char* postRequest;
-	printf("Content-type: text/html\n\n");
-	printf("elloH");
-*/
+	char *postResult = NULL; //[30000];
+	ssize_t retSize;
 
-	//postRequest = get_POST();
-
+	//postResult[0] = 0;
+	// postResult[1] = 0;
 
 	parse_cookies(&entriesCookie);
 	char* cookiVal = cgi_val(entriesCookie, "cookievalue");
@@ -39,14 +34,25 @@ int main() {
 		return 0;
 	}
 
-	int nConnRes = connectToServer();
-	if (nConnRes > 0) {
-		//char* IP = getenv("REMOTE_ADDR");
-
-		sendCookie(cookiVal);//IP);
-		getParam("formID=lm&END=2", postResult, MAX_LINE_LENGTH);
+	int conn_s = connectToServer();
+	if (conn_s > 0) {
+		sendCookie(conn_s, cookiVal);//IP);
 
 		printf("Content-type: text/javascript\n\n");
+
+		//char* IP = getenv("REMOTE_ADDR");
+		postResult = getParam(conn_s, "formID=lm&END=2", &retSize, MAX_LINE_LENGTH);
+
+
+		if (retSize <= 0) {
+			list_clear(&entriesCookie);
+			closeSocket(conn_s);
+			return 0; //TODO: send some error msg?
+		}
+
+
+
+
 
 		if  (postResult[0] != 0 && postResult[1] != 0) {
 			printf(postResult);
@@ -55,9 +61,8 @@ int main() {
 		}
 
 		fflush(stdout);
-		closeSocket();
-		//free(IP);
-	//	free(postRequest);
+		closeSocket(conn_s);
+		free(postResult);
 	}
 	list_clear(&entriesCookie);
 	return 0;

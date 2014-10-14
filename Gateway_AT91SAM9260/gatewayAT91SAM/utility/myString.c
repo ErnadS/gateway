@@ -52,7 +52,7 @@ char myString_convertUTF8toCAN(char* stringIn, char* stringOut, int nMaxCount) {
 	// æ: 0xC3a6
 	// ø: 0xC3b8
 	////////////////////////////////////////
-	// Finnish:
+/*	// Finnish:
 	// Node ASCII:
 	// Ä = 196, ä = 132, Ö = 153, ö = 148
 	// UTF-8:
@@ -60,7 +60,7 @@ char myString_convertUTF8toCAN(char* stringIn, char* stringOut, int nMaxCount) {
 	// ä = 0xC3A4
 	// Ö = 0xC396
 	// ö = 0xC3B6
-
+*/
 	for (i = 0; i < nLen; i++) {
 		if (stringOut[i] == 0xC3) { // UTF-8 (2 chars)
 			if (i < nLen - 1) { // last char cannot be first byte of norwegian char
@@ -83,7 +83,7 @@ char myString_convertUTF8toCAN(char* stringIn, char* stringOut, int nMaxCount) {
 					tempString[newLength] = 248; //178;
 					newLength++;
 				}
-				// Finnish:
+			/*	// Finnish:
 				else if (stringOut[i + 1] == 0x84) { // Ä
 					tempString[newLength] = 196;
 					newLength++;
@@ -99,7 +99,7 @@ char myString_convertUTF8toCAN(char* stringIn, char* stringOut, int nMaxCount) {
 				else if (stringOut[i + 1] == 0xb6) { // ö
 					tempString[newLength] = 148;
 					newLength++;
-				}
+				}*/
 				i++;
 			}
 		} else if (!((stringOut[i] >= 'A' && stringOut[i] <= 'Z')
@@ -155,14 +155,14 @@ char myString_convertCANtoUTF8(char* string1) {
 		// æ: 0xC3a6
 		// ø: 0xC3b8
 	////////////////////////////////////////
-		// Finnish:
+	/*	// Finnish:
 		// Node ASCII:
 		// Ä = 196, ä = 132, Ö = 153, ö = 148
 		// UTF-8:
 		// Ä = 0xC384
 		// ä = 0xC3A4
 		// Ö = 0xC396
-		// ö = 0xC3B6
+		// ö = 0xC3B6*/
 
 	for (i = 0; i < nLen; i++) {
 		if (string1[i] == 197) { 		// Å
@@ -185,7 +185,7 @@ char myString_convertCANtoUTF8(char* string1) {
 			tempString[newLength++] = 0xa6;
 		}
 		// Finnish:
-		else if (string1[i] == 196) {   // Ä
+/*		else if (string1[i] == 196) {   // Ä
 			tempString[newLength++] = 0xC3;
 			tempString[newLength++] = 0x84;
 		} else if (string1[i] == 132) { // ä
@@ -197,7 +197,7 @@ char myString_convertCANtoUTF8(char* string1) {
 		} else if (string1[i] == 148) { // ö
 			tempString[newLength++] = 0xC3;
 			tempString[newLength++] = 0xb6;
-		}
+		}*/
 
 		else if (!((string1[i] >= 'A' && string1[i] <= 'Z')
 				|| (string1[i] >= 'a' && string1[i] <= 'z')

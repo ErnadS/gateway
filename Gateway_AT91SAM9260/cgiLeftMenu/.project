@@ -3,7 +3,7 @@
 	<name>cgiLeftMenu</name>
 	<comment></comment>
 	<projects>
-		<project>gatewayElreg</project>
+		<project>gatewayAT91SAM</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

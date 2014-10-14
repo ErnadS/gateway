@@ -10,12 +10,21 @@
 #include "socketClient.h"
 #include "helper.h"           				/*  Our own helper functions  */
 
+#include <errno.h>
+#include <signal.h>
+
 #define SERVER_PORT   2004
 
-int       conn_s;                			/*  connection socket         */
+int soketOk = 1;
+
+void sigpipe_handler() {
+	printf("SIGPIPE caught\n");
+	soketOk = 0;
+}
  
  
 int connectToServer(void) {
+	int       conn_s;                			/*  connection socket         */ // ES: 2014.07.05 moved inside in case of 2 sockets in the same time
     struct    sockaddr_in servaddr;  		/*  socket address structure  */
     char     *szAddress;             		/*  Holds remote IP address   */
 
@@ -23,48 +32,46 @@ int connectToServer(void) {
 	//szAddress = "192.168.1.222";
 	
     if ( (conn_s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1 ) {
-	//fprintf(stderr, "TCP_CLIENT: Error creating client socket. Errno: %d\n", errno);
-	return -1;
+    	return -1;
     }
+    soketOk = 1;
+
+    signal(SIGPIPE, sigpipe_handler);
 
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family      = AF_INET;
     servaddr.sin_port        = htons(SERVER_PORT);
     
     if ( inet_aton(szAddress, &servaddr.sin_addr) <= 0 ) {
-	//printf("TCP_CLIENT: Invalid remote IP address.\n");
-	return -3;
+    	return -3;
     }
 
     if ( connect(conn_s, (struct sockaddr *) &servaddr, sizeof(servaddr) ) < 0 ) {
     	return -4;
     }
 
-    return 1;
+    return conn_s;
 }
 
-int sendCookie(char* psw)
+int sendCookie(int conn_s, char* psw)
 {
+	if (soketOk != 1)
+		return 0;
 	Writeline(conn_s, psw, strlen(psw));
 	return 1;
 }
 
-int getParam(char* paramName, char* param, size_t maxRecLength)
+char* getParam(int conn_s, char* paramName, ssize_t *count, size_t maxRecLength)
 {
+	if (soketOk != 1)
+			return 0;
 	Writeline(conn_s, paramName, strlen(paramName));
-	Readline(conn_s, param, maxRecLength);
-	return 1;
+	if (soketOk != 1)
+			return 0;
+	return Readline(conn_s, count, maxRecLength);
 }
 
-int getParams(char* paramName, char* param1, char* param2)
-{
-	 Writeline(conn_s, paramName, strlen(paramName));
-	 Readline(conn_s, param1, MAX_LINE_LENGTH-1);
-	 Readline(conn_s, param2, MAX_LINE_LENGTH-1);
-	 return 1;
-}
-
-int closeSocket(void)
+int closeSocket(int conn_s)
 {
 	if (conn_s >= 0)
 		close(conn_s);

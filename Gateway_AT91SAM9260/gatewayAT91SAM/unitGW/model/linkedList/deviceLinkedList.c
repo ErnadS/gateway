@@ -7,6 +7,7 @@
 #include "deviceLinkedList.h"
 #include <pthread.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 typedef struct myList {
@@ -33,6 +34,14 @@ linkedListElement* deviceLinkedList_createEmptyElement();
 int deviceLinkedList_addElement(DEV* newDev) {
 	if (newDev == NULL)
 		return -1;
+
+	DEV* testDev = deviceLinkedList_getDevice(newDev->adr);
+
+	if (testDev != NULL) {
+		printf("ERROR: Cannot add device. It was found before. ID: %d\n", newDev->adr);  // new 2014.10.10
+		return -1;
+	}
+
 	pthread_mutex_lock(&list_mutex); // new 2014.02.23
 	linkedListElement* p_newListElement = deviceLinkedList_createEmptyElement();
 	memcpy(p_newListElement, newDev, sizeof(DEV));
@@ -133,6 +142,23 @@ void deviceLinkedList_setFound(int nAddr, char bFound) {
 		}
 	}
 	//pthread_mutex_unlock(&list_mutex); // new 2014.02.23
+}
+
+// argument is TG,  IL or SW
+DEV* deviceLinkedList_getDeviceByType(int devType) {  // new 2014.10.10 (used by MOD bus)
+	int i;
+	int nDevicesCount = deviceLinkedList_getSize();
+
+	DEV * dev;
+
+	for (i = 0; i < nDevicesCount; i++) {
+		dev = deviceLinkedList_getElementAt(i);
+		if (dev != NULL && dev->type == devType) {
+			return dev;
+		}
+	}
+
+	return NULL;
 }
 
 

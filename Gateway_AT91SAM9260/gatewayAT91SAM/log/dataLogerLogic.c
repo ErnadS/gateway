@@ -161,7 +161,7 @@ void makeFileName(DEV* dev, int nMsgId, char* fileName) {
 	} else if (dev->type== SW) {
 		sprintf(fileName, "SW_%d_%s", dev->adr, messageTextSw_file[nMsgId]);
 	} else if (dev->type == IL) {
-		sprintf(fileName, "SW_%d_Channel_%d", dev->adr, (nMsgId + 1));
+		sprintf(fileName, "IL_%d_Channel_%d", dev->adr, (nMsgId + 1));
 	}
 }
 
@@ -349,7 +349,7 @@ void dataLogerLogic_checkUnit(int unitIndex) {
 	}
 
 	unsigned long fCanValue = canInterface_getValue(dev, devMeassuringsTask[unitIndex].msid);
-
+//printf("REMOVE THIS: Got msg id: %d for device %d, value: %ul\n", devMeassuringsTask[unitIndex].msid, dev->adr, fCanValue);
 	socketClientPipe_clearMutex();
 
 	if (fCanValue == ERROR_CAN) {
@@ -498,7 +498,7 @@ void removeUnusedMeasureFiles(void) {
 	    printf("Error removeUnusedMeasureFiles()");
 	    return;
 	}
-	printf("REMOVE ALL FILES IN: %s\n", MEASURE_FOLDER);
+	printf("REMOVE ALL UNUSED FILES IN: %s\n", MEASURE_FOLDER);
 
 	while ((entry = readdir(dir)) != NULL) {
 		if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) { // if not = "." and not = ".."

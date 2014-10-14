@@ -60,6 +60,7 @@ int serverSocket_start(void) {
 		//fprintf(stderr, "TCP_SERVER, Client accepted\n");
 
 		socketClientPipe_handleRequest(conn_s);
+		close (conn_s);
 	}
 
 	return 0;

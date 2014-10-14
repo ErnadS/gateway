@@ -30,6 +30,7 @@
 
 #include "AT91SAM9260.h"
 
+#include "MyGpio.h"
 /* ********************** LOCAL DEFINES ****************************** */
 
 /* We will use signals in header SV3 for this demo
@@ -45,6 +46,7 @@
  */
 #define	OUTPUT_PIN	AT91C_PIO_PA9
 #define	INPUT_PIN	AT91C_PIO_PA6 // AT91C_PIO_PC5
+
 
 static int						memMapFile;
 static AT91PS_PIOMAP			at91PioCtrlr;
@@ -130,24 +132,20 @@ int OpenSystemController(void)
 	at91PioCtrlr->PIOA_PPUDR	= INPUT_PIN;
 	at91PioCtrlr->PIOA_PER		= INPUT_PIN;
 
-	/* set digital output ports init value = 0 */
-	/*at91PioCtrlr->PIOC_CODR		= OUTPUT_PIN;
-	at91PioCtrlr->PIOC_PPUDR	= OUTPUT_PIN;
-	at91PioCtrlr->PIOC_PER		= OUTPUT_PIN;
-	at91PioCtrlr->PIOC_OER		= OUTPUT_PIN;*/
 
 	/* set digital output port */
-		at91PioCtrlr->PIOA_CODR		= OUTPUT_PIN;
-		at91PioCtrlr->PIOA_PPUDR	= OUTPUT_PIN;
-		at91PioCtrlr->PIOA_PER		= OUTPUT_PIN;
-		at91PioCtrlr->PIOA_OER		= OUTPUT_PIN;
+	at91PioCtrlr->PIOA_CODR		= OUTPUT_PIN;
+	at91PioCtrlr->PIOA_PPUDR	= OUTPUT_PIN;
+	at91PioCtrlr->PIOA_PER		= OUTPUT_PIN;
+	at91PioCtrlr->PIOA_OER		= OUTPUT_PIN;
 
 	/* sync memfile */
 
-		setPowerLedOutput(1);
+	setPowerLedOutput(1);
 
 	return (0);
 }
+
 
 
 
