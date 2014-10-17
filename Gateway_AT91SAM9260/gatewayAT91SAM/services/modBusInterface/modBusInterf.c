@@ -9,17 +9,152 @@
 #include "modbus.h"
 #include <stdio.h>
 #include <string.h>
+
 #include <syslog.h>
 #include "modbus-private.h"
 
-void modBusInterf_writeAlarmReg(int registerNo, char* msg);
+#include "LinkedListAlrMsg.h"
 
 modbus_t* mb;
 pthread_t modBusThread;
+pthread_t modBusRegistersThread;
+
 modbus_mapping_t *mb_mapping; // place to save modBus values
 char modBusRunThread;
 
 void * modBusInterface_modBusThreadTask(void *ptr);
+void * modBusInterface_ThreadUpdateRegisters(void *ptr);
+
+//void modBusInterf_writeAlarmReg(int registerNo, char* msg);
+
+void modBusInterf_writeInsulationResistance(uint16_t newValue);
+void modBusInterf_writeTransformTemperature(uint16_t newValue);
+void modBusInterf_writeTransformLoad(uint16_t newValue);
+void modBusInterf_writePrefferedSuppVolt(uint16_t newValue);
+void modBusInterf_writeSecondary_1_SuppVot(uint16_t newValue);
+void modBusInterf_writeSecondary_2_SuppVot(uint16_t newValue);
+void modBusInterf_writeIT_transformOutpVolt(uint16_t newValue);
+void modBusInterf_writeExternAlarmInput_1(uint16_t newValue);
+void modBusInterf_writeExternAlarmInput_2(uint16_t newValue);
+
+void * modBusInterface_modBusThreadTask(void *ptr) {
+	unsigned char hhh[100];
+	int modBusResult;
+
+	while (modBusRunThread == 1) {
+		modBusResult = modbus_receive(mb, -1, hhh);
+		if (modBusResult > 0)
+			modbus_reply(mb, hhh, modBusResult, mb_mapping);
+		else {
+			//printf("Modbus timeout?\n");
+		}
+	}
+
+	syslog(LOG_ERR, "ModBus closed\n");
+	modbus_free(mb);
+	return (void*) 0;
+}
+// 								MOD BUS REG					CAN Index	Subindex	Unit type
+//------------------------------------------------------------------------------------------------------
+// Insulation resistance     		30011						0x3000 		1		 TG
+// Transformer temperature   		30012						0x3002		1		 TG
+// Transformer load 	     		30013	 					0x3001 		1		 TG 	(Transformer current)
+
+// Preferred supply voltage	 		30014
+// Secondary 1 supply voltage	 	30015						0x3000 		1		 SW 	(Supply 1 voltage)
+// Secondary 2 supply voltage	 	30016						0x3001 		1		 SW 	(Supply 2 voltage)
+// IT transformer output voltage    30017
+// Extern alarm input 1 state		30018
+// Extern alarm input 2 state		30019
+
+// GateWay alarm registers:
+//------------------------------------------------------------------------------------------------------
+// Alarm register 1					30020
+// Alarm register 2					30020
+// Alarm register 3					30020
+// Alarm register 4					30020
+// Alarm register 5					30020
+
+// GateWay info:
+//------------------------------------------------------------------------------------------------------
+// Location/ID						30080
+// Ethernet Mac address/S.no.		30092
+// SW version						30095
+
+#include "../../unitGW/model/linkedList/deviceLinkedList.h"
+#include "../../unitGW/model/device.h"
+#include "../../can/canInterface.h"
+#include <unistd.h>
+
+////////////////////////////////////////////////////
+// Uncomment this line for testing of CAN bus
+////////////////////////////////////////////////////
+// #define CAN_STRES_TEST
+
+void * modBusInterface_ThreadUpdateRegisters(void *ptr) {
+	unsigned char status;
+	uint16_t result_16;
+
+	DEV* device;
+
+	sleep(5);
+	int i;
+
+	while (modBusRunThread) {
+#ifdef CAN_STRES_TEST
+		for (i = 0; i < 1000; i++) {
+#endif
+			device = deviceLinkedList_getDeviceByType(TG);
+
+			if (device != NULL) {
+				status = canInterface_getUint16((unsigned int*) (&result_16),
+						device->adr, 0x3000, 1);
+				if (status == CAN_OK) {
+					modBusInterf_writeInsulationResistance(result_16);
+				}
+
+				status = canInterface_getUint16((unsigned int*) (&result_16),
+						device->adr, 0x3002, 1);
+				if (status == CAN_OK) {
+					modBusInterf_writeTransformTemperature(result_16);
+				}
+
+				status = canInterface_getUint16((unsigned int*) (&result_16),
+						device->adr, 0x3001, 1);
+				if (status == CAN_OK) {
+					modBusInterf_writeTransformLoad(result_16);
+				}
+			}
+
+			device = deviceLinkedList_getDeviceByType(SW);
+			if (device != NULL) {
+				status = canInterface_getUint16((unsigned int*) (&result_16),
+						device->adr, 0x3000, 1);
+				if (status == CAN_OK) {
+					modBusInterf_writePrefferedSuppVolt(result_16);
+				}
+				status = canInterface_getUint16((unsigned int*) (&result_16),
+						device->adr, 0x3001, 1);
+				if (status == CAN_OK) {
+					modBusInterf_writeSecondary_1_SuppVot(result_16);
+				}
+
+				status = canInterface_getUint16((unsigned int*) (&result_16),
+						device->adr, 0x3002, 1);
+				if (status == CAN_OK) {
+					modBusInterf_writeSecondary_2_SuppVot(result_16);
+				}
+			}
+#ifdef CAN_STRES_TEST
+		}
+		sleep(1);
+#else
+		sleep(30);// 30 sec
+#endif
+	} // while
+
+	return 0;
+}
 
 // "/dev/ttyS1", 19200, 'N', 8, 1
 char modBusInterf_start(const char* serialName, unsigned char baudRate,
@@ -28,44 +163,45 @@ char modBusInterf_start(const char* serialName, unsigned char baudRate,
 	unsigned int br;
 	char par;
 
-	switch(baudRate) {
+	switch (baudRate) {
 	case 0:
 		br = 1200;
-	break;
+		break;
 	case 1:
 		br = 2400;
-	break;
+		break;
 	case 2:
 		br = 4800;
-	break;
+		break;
 	case 3:
 		br = 9600;
-	break;
-	//case 0:
+		break;
+		//case 0:
 		//br = 14400;
-	//break;
+		//break;
 	case 4:
 		br = 19200;
-	break;
+		break;
 	case 5:
 		br = 28800;
-	break;
+		break;
 	case 6:
 		br = 38400;
-	break;
-	//case 0:
+		break;
+		//case 0:
 		//br = 56000;
-	//break;
+		//break;
 	case 7:
 		br = 57600;
-	break;
+		break;
 	case 8:
 		br = 115200;
-	break;
+		break;
 	default:
-		syslog(LOG_ERR,  "Error modBusInterf_start, wrong baudRate index: %u\n", baudRate);
+		syslog(LOG_ERR, "Error modBusInterf_start, wrong baudRate index: %u\n",
+				baudRate);
 		return -1;
-	break;
+		break;
 	}
 
 	if (parity == 0)
@@ -75,12 +211,15 @@ char modBusInterf_start(const char* serialName, unsigned char baudRate,
 	else if (parity == 2)
 		par = 'E';
 	else {
-		syslog(LOG_ERR,  "Error modBusInterf_start, wrong parity index: %u\n", parity);
+		syslog(LOG_ERR, "Error modBusInterf_start, wrong parity index: %u\n",
+				parity);
 		return -1;
 	}
 
 	if (bytes < 0 || bytes > 3 || stopBit < 0 || stopBit > 1) {
-		syslog(LOG_ERR,  "Error modBusInterf_start, bits index: %u, stopBit index: %u\n", bytes, stopBit);
+		syslog(LOG_ERR,
+				"Error modBusInterf_start, bits index: %u, stopBit index: %u\n",
+				bytes, stopBit);
 		return -1;
 	}
 
@@ -94,16 +233,21 @@ char modBusInterf_start(const char* serialName, unsigned char baudRate,
 	mb->debug = 1;
 	rc = modbus_connect(mb);
 	if (rc < 0) {
-		syslog(LOG_ERR,  "Error modbus_connect\n");
+		syslog(LOG_ERR, "Error modbus_connect\n");
 		return -1;
 	}
-	syslog(LOG_ERR,  "ModBus start. Address: %u, Baud Rate: %u, parity: %c, bytes: %u, stop bytes: %u\n", slaveId, br, par, (bytes + 5), (stopBit + 1));
+	syslog(LOG_ERR,
+			"ModBus start. Address: %u, Baud Rate: %u, parity: %c, bytes: %u, stop bytes: %u\n",
+			slaveId, br, par, (bytes + 5), (stopBit + 1));
 	modBusRunThread = 1;
-	mb_mapping = modbus_mapping_new(1, 0, 0, 86);  // 86 registers * 2 bytes
+	mb_mapping = modbus_mapping_new(1, 0, 86, 0); // we have total 86 registers * 2 bytes
 	mb_mapping->tab_bits[0] = 0; // init value: not alarm
 
-	return pthread_create(&modBusThread, NULL, modBusInterface_modBusThreadTask,
-				(void*) NULL);
+	pthread_create(&modBusThread, NULL, modBusInterface_modBusThreadTask,
+			(void*) NULL);
+
+	return pthread_create(&modBusRegistersThread, NULL,
+			modBusInterface_ThreadUpdateRegisters, (void*) NULL);
 }
 
 char modBusInterf_stop() {
@@ -138,113 +282,136 @@ void modBusInterface_notifyAlarm() {
 #define GW_ETHERN_MAC_ADDR				91
 #define GW_SW_VER_ADDR					94
 
-
+// Register address 30011 (2 bytes)
 void modBusInterf_writeInsulationResistance(uint16_t newValue) {
-	mb_mapping->tab_registers[INSULATION_RESISTANCE_ADDR] = newValue;  // tab_register is used when received command "FC_READ_HOLDING_REGISTERS"
+	mb_mapping->tab_registers[INSULATION_RESISTANCE_ADDR] = newValue; // tab_register is used when received command "FC_READ_HOLDING_REGISTERS"
 }
 
+// Register address 30012 (2 bytes)
 void modBusInterf_writeTransformTemperature(uint16_t newValue) {
 	mb_mapping->tab_registers[TRANSFORM_TEMPER_ADDR] = newValue;
 }
 
+// Register address 30013 (2 bytes)
 void modBusInterf_writeTransformLoad(uint16_t newValue) {
 	mb_mapping->tab_registers[TRANSFORM_LOAD_ADDR] = newValue;
 }
 
+// Register address 30014 (2 bytes)
 void modBusInterf_writePrefferedSuppVolt(uint16_t newValue) {
 	mb_mapping->tab_registers[PREFERRED_SUPP_VOLT_ADDR] = newValue;
 }
 
+// Register address 30015 (2 bytes)
 void modBusInterf_writeSecondary_1_SuppVot(uint16_t newValue) {
 	mb_mapping->tab_registers[SECOND_1_SUPPL_VOLT_ADDR] = newValue;
 }
 
+// Register address 30016 (2 bytes)
 void modBusInterf_writeSecondary_2_SuppVot(uint16_t newValue) {
 	mb_mapping->tab_registers[SECOND_2_SUPPL_VOLT_ADDR] = newValue;
 }
 
+// Register address 30017 (2 bytes)
 void modBusInterf_writeIT_transformOutpVolt(uint16_t newValue) {
 	mb_mapping->tab_registers[IT_TRANSFORM_OUTP_VOLT_ADDR] = newValue;
 }
 
+// Register address 30018 (2 bytes but used only 1 bit)
 void modBusInterf_writeExternAlarmInput_1(uint16_t newValue) {
 	mb_mapping->tab_registers[EXTERN_ALARM_INPUT_1_ADDR] = newValue;
 }
 
+// Register address 30019 (2 bytes but used only 1 bit)
 void modBusInterf_writeExternAlarmInput_2(uint16_t newValue) {
 	mb_mapping->tab_registers[EXTERN_ALARM_INPUT_2_ADDR] = newValue;
 }
 
 int nCurrentModBusAlarmIndex = 0;
+
+
 void modBusInerf_addNewAlarmMsg(char* msg) {
+	int nLength = strlen(msg);
+	if (nLength > 23)
+		msg[23] = 0;
+
+	alr_LinkedList_addElement(msg);
+
+	alr_LinkedList_copyAll(&(mb_mapping->tab_registers[ALARM_REG_1_ADDR]));
+	/*
 	switch (nCurrentModBusAlarmIndex) {
 	case 0:
-		modBusInterf_writeAlarmReg(ALARM_REG_1_ADDR, msg);
+		modBusInterf_writeAlarmReg(ALARM_REG_1_ADDR, msg); // Register address 30020 (12 * 2 bytes)
 		break;
 	case 1:
-		modBusInterf_writeAlarmReg(ALARM_REG_2_ADDR, msg);
+		modBusInterf_writeAlarmReg(ALARM_REG_2_ADDR, msg); // Register address 30032 (12 * 2 bytes)
 		break;
 	case 2:
-		modBusInterf_writeAlarmReg(ALARM_REG_3_ADDR, msg);
+		modBusInterf_writeAlarmReg(ALARM_REG_3_ADDR, msg); // Register address 30044 (12 * 2 bytes)
 		break;
 	case 3:
-		modBusInterf_writeAlarmReg(ALARM_REG_4_ADDR, msg);
+		modBusInterf_writeAlarmReg(ALARM_REG_4_ADDR, msg); // Register address 30056 (12 * 2 bytes)
 		break;
 	case 4:
-		modBusInterf_writeAlarmReg(ALARM_REG_5_ADDR, msg);
+		modBusInterf_writeAlarmReg(ALARM_REG_5_ADDR, msg); // Register address 30068 (12 * 2 bytes)
 		break;
 	}
 
-	nCurrentModBusAlarmIndex ++;
+	nCurrentModBusAlarmIndex++;
 
 	if (nCurrentModBusAlarmIndex > 4)
-		nCurrentModBusAlarmIndex = 0;
+		nCurrentModBusAlarmIndex = 0;*/
 }
 
+void modBusInerf_clearAlarmMsg(char* msg) {
+
+	alr_LinkedList_removeElement(msg);
+	alr_LinkedList_copyAll(&(mb_mapping->tab_registers[ALARM_REG_1_ADDR]));
+	/*
+	int i;
+
+	for(i = 0; i < 5; i++) {
+		if (strcmp(msg, alrMessage[i]) == 0) {  // found message to clear
+			memset(&alrMessage[i], 0, 24); // clear temp array
+
+			// Clear MOD bus register
+			if (i == 0)
+				memset(&(mb_mapping->tab_registers[ALARM_REG_1_ADDR]), 0, 24);
+			else if (i == 1)
+				memset(&(mb_mapping->tab_registers[ALARM_REG_2_ADDR]), 0, 24);
+			else if (i == 2)
+				memset(&(mb_mapping->tab_registers[ALARM_REG_3_ADDR]), 0, 24);
+			else if (i == 3)
+				memset(&(mb_mapping->tab_registers[ALARM_REG_4_ADDR]), 0, 24);
+			else if (i == 4)
+				memset(&(mb_mapping->tab_registers[ALARM_REG_5_ADDR]), 0, 24);
+		}
+	}*/
+}
 /////////////// TEXT //////////////////////
+/*
 void modBusInterf_writeAlarmReg(int registerNo, char* msg) {
 	int nLength = strlen(msg);
-	if (nLength > 24)
-		nLength = 24;
 
 	int nRest = nLength % 2;
 	nLength -= nRest;
 	int i;
 	uint16_t temp;
 
-	for (i = 0; i < nLength/2; i++) {
-		temp = msg[2*i] << 8 | msg[2*i+1];
+	for (i = 0; i < nLength / 2; i++) {
+		temp = msg[2 * i] | msg[2 * i + 1] << 8 ;
 		mb_mapping->tab_registers[registerNo + i] = temp;
 	}
 
 	// if odd, add last char
 	if (nRest > 0) {
-		mb_mapping->tab_registers[registerNo + i] = msg[nLength -1];
+		mb_mapping->tab_registers[registerNo + i] = msg[nLength - 1];
 		i++;
 	}
 
 	// fill rest with zero
-	for (; i<12; i++) {
+	for (; i < 12; i++) {
 		mb_mapping->tab_registers[registerNo + i] = 0;
 	}
 }
-
-
-
-void * modBusInterface_modBusThreadTask(void *ptr) {
-	unsigned char hhh[100];
-	int modBusResult;
-
-	while (modBusRunThread == 1) {
-		modBusResult = modbus_receive(mb, -1, hhh);
-		if (modBusResult > 0)
-			modbus_reply(mb, hhh, modBusResult, mb_mapping);
-		else {
-			//printf("Modbus timeout?\n");
-		}
-	}
-	syslog(LOG_ERR, "ModBus closed\n");
-	modbus_free(mb);
-	return (void*)0;
-}
-
+*/

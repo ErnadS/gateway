@@ -126,19 +126,6 @@ RemoteSystemsTempFiles
 /Gateway_AT91SAM9260/testDriver/Debug/nothing.d
 /Gateway_AT91SAM9260/testDriver/Debug/nothing.o
 /Gateway_AT91SAM9260/testDriver/Debug/objects.mk
-
-can
-log
-services
-
-unitAP
-unitGW
-unitIL
-
-unitSW
-unitTG
-utility
-webModule
 /Gateway_AT91SAM9260/cgiAlarmPanel/Debug/cgiAlarmPanel
 /Gateway_AT91SAM9260/cgiAlarmPanelInfo/Debug/cgiAlarmPanelInfo
 

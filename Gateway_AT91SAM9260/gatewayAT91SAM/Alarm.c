@@ -19,6 +19,7 @@
 #include "unitGW/utility/gwAlarmLogUtility.h"
 #include "services/modBusInterface/modBusInterf.h"
 #include "config.h"
+#include "services/modBusInterface/modBusInterf.h"
 
 
 #define MAX_ALARMS  10
@@ -246,6 +247,7 @@ void alarm_readAndSendMail(void) {
 				result = canInterface_getString(alarms[i].alarmText, alarms[i].alarmNodeID, alarms[i].alarmIndex, alarms[i].alarmSubindex); // get alarmText
 				if (result == CAN_OK) {
 					sprintf(alarmCompletMsgTxt, "%s, error: 0x%04x", alarms[i].alarmText, alarms[i].alarm_errCode);
+					modBusInerf_addNewAlarmMsg(alarms[i].alarmText);
 				}
 				else {
 					if (alarms[i].trialCount < 2) {  // return and try next time
@@ -272,18 +274,22 @@ void alarm_readAndSendMail(void) {
 				if (alarms[i].alarmText[0] != 0) { // we have a alarm info (found when alarm occurred)
 					printf("444\n");
 					sprintf(alarmCompletMsgTxt, "CLEARED: %s, error: 0x%04x", alarms[i].alarmText, alarms[i].alarm_errCode);
+					modBusInerf_addNewAlarmMsg(alarms[i].alarmText);
 				} else {  // we don't have a alarm text
 					printf("555\n");
 					sprintf(alarmCompletMsgTxt, "CLEARED unknown alarm, error: 0x%04x", alarms[i].alarm_errCode);
+					modBusInerf_addNewAlarmMsg("CLEARED unknown alarm");
 				}
 			} else {  // Clear received before sending of the alarm:
 				if (alarms[i].alarmText[0] != 0) {
 					printf("666\n");
 					sprintf(alarmCompletMsgTxt, "%s received and CLEARED, error: 0x%04x", alarms[i].alarmText, alarms[i].alarm_errCode);
+					modBusInerf_addNewAlarmMsg("CLEARED  alarm");
 				}
 				else {
 					printf("777\n");
 					sprintf(alarmCompletMsgTxt, "Alarm received and CLEARED, error: 0x%04x", alarms[i].alarm_errCode);
+					modBusInerf_addNewAlarmMsg("Received and CLEARED");
 				}
 			}
 		}

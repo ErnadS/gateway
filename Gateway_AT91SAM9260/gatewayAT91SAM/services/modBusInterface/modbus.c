@@ -91,6 +91,19 @@ typedef struct {
 	int t_id;
 } sft_t;
 
+/*
+ ---------- Request     Indication ----------
+ | Client | ---------------------->| Server |
+ ---------- Confirmation  Response ----------
+ */
+
+typedef enum {
+	/* Request message on the server side */
+	MSG_INDICATION,
+	/* Request message on the client side */
+	MSG_CONFIRMATION
+} msg_type_t;
+
 /* Table of CRC values for high-order byte */
 static uint8_t table_crc_hi[] = { 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80,
 		0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80,
@@ -150,123 +163,58 @@ static const int TAB_MAX_ADU_LENGTH[2] = { MODBUS_MAX_ADU_LENGTH_RTU,
 /* Max between RTU and TCP max adu length */
 #define MAX_MESSAGE_LENGTH MODBUS_MAX_ADU_LENGTH_TCP
 
-const char *modbus_strerror(int errnum) {
-	switch (errnum) {
-	case EMBXILFUN:
-		return "Illegal function";
-	case EMBXILADD:
-		return "Illegal data address";
-	case EMBXILVAL:
-		return "Illegal data value";
-	case EMBXSFAIL:
-		return "Slave device or server failure";
-	case EMBXACK:
-		return "Acknowledge";
-	case EMBXSBUSY:
-		return "Slave device or server is busy";
-	case EMBXNACK:
-		return "Negative acknowledge";
-	case EMBXMEMPAR:
-		return "Memory parity error";
-	case EMBXGPATH:
-		return "Gateway path unavailable";
-	case EMBXGTAR:
-		return "Target device failed to respond";
-	case EMBBADCRC:
-		return "Invalid CRC";
-	case EMBBADDATA:
-		return "Invalid data";
-	case EMBBADEXC:
-		return "Invalid exception code";
-	case EMBMDATA:
-		return "Too many data";
-	default:
-		return strerror(errnum);
-	}
-}
+#define WAIT_DATA() {                                                   \
+        while ((s_rc = select(ctx->s+1, &rfds, NULL, NULL, &tv)) == -1) { \
+            if (errno == EINTR) {                                       \
+                if (ctx->debug) {                                       \
+                    fprintf(stderr,                                     \
+                            "A non blocked signal was caught\n");       \
+                }                                                       \
+                /* Necessary after an error */                          \
+                FD_ZERO(&rfds);                                         \
+                FD_SET(ctx->s, &rfds);                                  \
+            } else {                                                    \
+                error_print(ctx, "select");                             \
+                if (ctx->error_recovery && (errno == EBADF)) {          \
+                    modbus_close(ctx);                                  \
+                    modbus_connect(ctx);                                \
+                    errno = EBADF;                                      \
+                    return -1;                                          \
+                } else {                                                \
+                    return -1;                                          \
+                }                                                       \
+            }                                                           \
+        }                                                               \
+                                                                        \
+        if (s_rc == 0) {                                                \
+            /* Timeout */                                               \
+            if (msg_length == (TAB_HEADER_LENGTH[ctx->type_com] + 2 +   \
+                               TAB_CHECKSUM_LENGTH[ctx->type_com])) {   \
+                /* Optimization allowed because exception response is   \
+                   the smallest trame in modbus protocol (3) so always  \
+                   raise a timeout error.                               \
+                   Temporary error before exception analyze. */         \
+                errno = EMBUNKEXC;                                      \
+            } else {                                                    \
+                errno = ETIMEDOUT;                                      \
+                error_print(ctx, "select");                             \
+            }                                                           \
+            return -1;                                                  \
+        }                                                               \
+    }
 
-static void error_print(modbus_t *ctx, const char *context) {
-	if (ctx->debug) {
-		fprintf(stderr, "ERROR %s", modbus_strerror(errno));
-		if (context != NULL) {
-			fprintf(stderr, ": %s\n", context);
-		} else {
-			fprintf(stderr, "\n");
-		}
-	}
-}
 
-int modbus_flush(modbus_t *ctx) {
-	int rc;
-
-	if (ctx->type_com == RTU) {
-		rc = tcflush(ctx->s, TCIOFLUSH);
-	} else {
-		do {
-			/* Extract the garbage from the socket */
-			char devnull[MODBUS_MAX_ADU_LENGTH_TCP];
-#if (!HAVE_DECL___CYGWIN__)
-			rc = recv(ctx->s, devnull, MODBUS_MAX_ADU_LENGTH_TCP, MSG_DONTWAIT);
-#else
-			/* On Cygwin, it's a bit more complicated to not wait */
-			fd_set rfds;
-			struct timeval tv;
-
-			tv.tv_sec = 0;
-			tv.tv_usec = 0;
-			FD_ZERO(&rfds);
-			FD_SET(ctx->s, &rfds);
-			rc = select(ctx->s+1, &rfds, NULL, NULL, &tv);
-			if (rc == -1) {
-				return -1;
-			}
-
-			rc = recv(ctx->s, devnull, MODBUS_MAX_ADU_LENGTH_TCP, 0);
-#endif
-			if (ctx->debug && rc != -1) {
-				printf("\n%d bytes flushed\n", rc);
-			}
-		} while (rc > 0);
-	}
-
-	return rc;
-}
-
-/* Computes the length of the expected response */
-static unsigned int compute_response_length(modbus_t *ctx, uint8_t *req) {
-	int length;
-	int offset;
-
-	offset = TAB_HEADER_LENGTH[ctx->type_com];
-
-	switch (req[offset]) {
-	case FC_READ_COILS:
-	case FC_READ_DISCRETE_INPUTS: {
-		/* Header + nb values (code from write_bits) */
-		int nb = (req[offset + 3] << 8) | req[offset + 4];
-		length = 2 + (nb / 8) + ((nb % 8) ? 1 : 0);
-	}
-		break;
-	case FC_READ_AND_WRITE_REGISTERS:
-	case FC_READ_HOLDING_REGISTERS:
-	case FC_READ_INPUT_REGISTERS:
-		/* Header + 2 * nb values */
-		length = 2 + 2 * (req[offset + 3] << 8 | req[offset + 4]);
-		break;
-	case FC_READ_EXCEPTION_STATUS:
-		length = 3;
-		break;
-	case FC_REPORT_SLAVE_ID:
-		/* The response is device specific (the header provides the
-		 length) */
-		return MSG_LENGTH_UNDEFINED;
-	default:
-		length = 5;
-		break;
-	}
-
-	return length + offset + TAB_CHECKSUM_LENGTH[ctx->type_com];
-}
+int modbus_flush(modbus_t *ctx);
+const char *modbus_strerror(int errnum);
+static void error_print(modbus_t *ctx, const char *context);
+static uint8_t compute_header_length(int function, msg_type_t msg_type);
+static int compute_data_length(modbus_t *ctx, uint8_t *msg);
+static unsigned int compute_response_length(modbus_t *ctx, uint8_t *req);
+static int build_request_basis_tcp(int slave, int function, int addr, int nb, uint8_t *req);
+static int build_response_basis_tcp(sft_t *sft, uint8_t *rsp);
+static uint16_t crc16(uint8_t *buffer, uint16_t buffer_length);
+static int check_crc16(modbus_t *ctx, uint8_t *msg, const int msg_length);
+static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg, msg_type_t msg_type);
 
 /* Builds a RTU request header */
 static int build_request_basis_rtu(int slave, int function, int addr, int nb,
@@ -281,41 +229,7 @@ static int build_request_basis_rtu(int slave, int function, int addr, int nb,
 	return PRESET_REQ_LENGTH_RTU;
 }
 
-/* Builds a TCP request header */
-static int build_request_basis_tcp(int slave, int function, int addr, int nb,
-		uint8_t *req) {
 
-	/* Extract from MODBUS Messaging on TCP/IP Implementation Guide V1.0b
-	 (page 23/46):
-	 The transaction identifier is used to associate the future response
-	 with the request. So, at a time, on a TCP connection, this identifier
-	 must be unique. */
-	static uint16_t t_id = 0;
-
-	/* Transaction ID */
-	if (t_id < UINT16_MAX)
-		t_id++;
-	else
-		t_id = 0;
-	req[0] = t_id >> 8;
-	req[1] = t_id & 0x00ff;
-
-	/* Protocol Modbus */
-	req[2] = 0;
-	req[3] = 0;
-
-	/* Length will be defined later by set_req_length_tcp at offsets 4
-	 and 5 */
-
-	req[6] = slave;
-	req[7] = function;
-	req[8] = addr >> 8;
-	req[9] = addr & 0x00ff;
-	req[10] = nb >> 8;
-	req[11] = nb & 0x00ff;
-
-	return PRESET_REQ_LENGTH_TCP;
-}
 
 static int build_request_basis(modbus_t *ctx, int function, int addr, int nb,
 		uint8_t *req) {
@@ -333,73 +247,13 @@ static int build_response_basis_rtu(sft_t *sft, uint8_t *rsp) {
 	return PRESET_RSP_LENGTH_RTU;
 }
 
-/* Builds a TCP response header */
-static int build_response_basis_tcp(sft_t *sft, uint8_t *rsp) {
-	/* Extract from MODBUS Messaging on TCP/IP Implementation
-	 Guide V1.0b (page 23/46):
-	 The transaction identifier is used to associate the future
-	 response with the request. */
-	rsp[0] = sft->t_id >> 8;
-	rsp[1] = sft->t_id & 0x00ff;
 
-	/* Protocol Modbus */
-	rsp[2] = 0;
-	rsp[3] = 0;
-
-	/* Length will be set later by send_msg (4 and 5) */
-
-	rsp[6] = 0xFF;
-	rsp[7] = sft->function;
-
-	return PRESET_RSP_LENGTH_TCP;
-}
 
 static int build_response_basis(modbus_t *ctx, sft_t *sft, uint8_t *rsp) {
 	if (ctx->type_com == RTU)
 		return build_response_basis_rtu(sft, rsp);
 	else
 		return build_response_basis_tcp(sft, rsp);
-}
-
-/* Fast CRC */
-static uint16_t crc16(uint8_t *buffer, uint16_t buffer_length) {
-	uint8_t crc_hi = 0xFF; /* high CRC byte initialized */
-	uint8_t crc_lo = 0xFF; /* low CRC byte initialized */
-	unsigned int i; /* will index into CRC lookup */
-
-	/* pass through message buffer */
-	while (buffer_length--) {
-		i = crc_hi ^ *buffer++; /* calculate the CRC  */
-		crc_hi = crc_lo ^ table_crc_hi[i];
-		crc_lo = table_crc_lo[i];
-	}
-
-	return (crc_hi << 8 | crc_lo);
-}
-
-/* The check_crc16 function shall return the message length if the CRC is
- valid. Otherwise it shall return -1 and set errno to EMBADCRC. */
-static int check_crc16(modbus_t *ctx, uint8_t *msg, const int msg_length) {
-	uint16_t crc_calculated;
-	uint16_t crc_received;
-
-	crc_calculated = crc16(msg, msg_length - 2);
-	crc_received = (msg[msg_length - 2] << 8) | msg[msg_length - 1];
-
-	/* Check CRC of msg */
-	if (crc_calculated == crc_received) {
-		return msg_length;
-	} else {
-		if (ctx->debug) {
-			fprintf(stderr, "ERROR CRC received %0X != CRC calculated %0X\n",
-					crc_received, crc_calculated);
-		}
-		if (ctx->error_recovery) {
-			modbus_flush(ctx);
-		}
-		errno = EMBBADCRC;
-		return -1;
-	}
 }
 
 /* Sends a req/response over a serial or a TCP communication */
@@ -463,105 +317,18 @@ static int send_msg(modbus_t *ctx, uint8_t *req, int req_length) {
 	return rc;
 }
 
-/*
- ---------- Request     Indication ----------
- | Client | ---------------------->| Server |
- ---------- Confirmation  Response ----------
- */
 
-typedef enum {
-	/* Request message on the server side */
-	MSG_INDICATION,
-	/* Request message on the client side */
-	MSG_CONFIRMATION
-} msg_type_t;
-
-/* Computes the header length (to reach the real data) */
-static uint8_t compute_header_length(int function, msg_type_t msg_type) {
-	int length;
-
-	if (msg_type == MSG_CONFIRMATION) {
-		if (function == FC_REPORT_SLAVE_ID) {
-			length = 1;
-		} else {
-			/* Should never happen, the other header lengths are precomputed */
-			abort();
-		}
-	} else /* MSG_INDICATION */{
-		if (function <= FC_WRITE_SINGLE_COIL
-				|| function == FC_WRITE_SINGLE_REGISTER) {
-			length = 4;
-		} else if (function == FC_WRITE_MULTIPLE_COILS
-				|| function == FC_WRITE_MULTIPLE_REGISTERS) {
-			length = 5;
-		} else if (function == FC_READ_AND_WRITE_REGISTERS) {
-			length = 9;
-		} else {
-			length = 0;
-		}
+/* Receive the request from a modbus master.
+Returns the request  and its length if (or -1 and errno is set) */
+int modbus_receive(modbus_t *ctx, int sockfd, uint8_t *req) {
+	if (sockfd != -1) {
+		ctx->s = sockfd;
 	}
-	return length;
+
+	/* The length of the request to receive isn't known. */
+	return receive_msg(ctx, MSG_LENGTH_UNDEFINED, req, MSG_INDICATION);
 }
 
-/* Computes the length of the data to write in the request */
-static int compute_data_length(modbus_t *ctx, uint8_t *msg) {
-	int function = msg[TAB_HEADER_LENGTH[ctx->type_com]];
-	int length;
-
-	if (function == FC_WRITE_MULTIPLE_COILS
-			|| function == FC_WRITE_MULTIPLE_REGISTERS) {
-		length = msg[TAB_HEADER_LENGTH[ctx->type_com] + 5];
-	} else if (function == FC_REPORT_SLAVE_ID) {
-		length = msg[TAB_HEADER_LENGTH[ctx->type_com] + 1];
-	} else if (function == FC_READ_AND_WRITE_REGISTERS) {
-		length = msg[TAB_HEADER_LENGTH[ctx->type_com] + 9];
-	} else
-		length = 0;
-
-	length += TAB_CHECKSUM_LENGTH[ctx->type_com];
-
-	return length;
-}
-
-#define WAIT_DATA() {                                                   \
-        while ((s_rc = select(ctx->s+1, &rfds, NULL, NULL, &tv)) == -1) { \
-            if (errno == EINTR) {                                       \
-                if (ctx->debug) {                                       \
-                    fprintf(stderr,                                     \
-                            "A non blocked signal was caught\n");       \
-                }                                                       \
-                /* Necessary after an error */                          \
-                FD_ZERO(&rfds);                                         \
-                FD_SET(ctx->s, &rfds);                                  \
-            } else {                                                    \
-                error_print(ctx, "select");                             \
-                if (ctx->error_recovery && (errno == EBADF)) {          \
-                    modbus_close(ctx);                                  \
-                    modbus_connect(ctx);                                \
-                    errno = EBADF;                                      \
-                    return -1;                                          \
-                } else {                                                \
-                    return -1;                                          \
-                }                                                       \
-            }                                                           \
-        }                                                               \
-                                                                        \
-        if (s_rc == 0) {                                                \
-            /* Timeout */                                               \
-            if (msg_length == (TAB_HEADER_LENGTH[ctx->type_com] + 2 +   \
-                               TAB_CHECKSUM_LENGTH[ctx->type_com])) {   \
-                /* Optimization allowed because exception response is   \
-                   the smallest trame in modbus protocol (3) so always  \
-                   raise a timeout error.                               \
-                   Temporary error before exception analyze. */         \
-                errno = EMBUNKEXC;                                      \
-            } else {                                                    \
-                errno = ETIMEDOUT;                                      \
-                error_print(ctx, "select");                             \
-            }                                                           \
-            return -1;                                                  \
-        }                                                               \
-    }
 
 /* Waits a response from a modbus server or a request from a modbus client.
  This function blocks if there is no replies (3 timeouts).
@@ -594,16 +361,11 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 	int msg_length = 0;
 
 	if (ctx->debug) {
-		if (msg_type == MSG_INDICATION) {
-			printf("Waiting for a indication");
-		} else {
-			printf("Waiting for a confirmation");
-		}
+		/*if (msg_type == MSG_INDICATION)  printf("Waiting for a indication\n");
+		 else  printf("Waiting for a confirmation\n");
 
-		if (msg_length_computed == MSG_LENGTH_UNDEFINED)
-			printf("...\n");
-		else
-			printf(" (%d bytes)...\n", msg_length_computed);
+		if (msg_length_computed == MSG_LENGTH_UNDEFINED) printf("...\n");
+		else printf(" (%d bytes)...\n", msg_length_computed); */
 	}
 
 	/* Add a file descriptor to the set */
@@ -631,13 +393,12 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 
 	s_rc = 0;
 	WAIT_DATA();
-
+	printf("***** RS485 received:");
 	p_msg = msg;
 	while (s_rc) {
-		if (ctx->type_com == RTU)
+		//if (ctx->type_com == RTU)
 			read_rc = read(ctx->s, p_msg, length_to_read);
-		else
-			read_rc = recv(ctx->s, p_msg, length_to_read, 0);
+		//else read_rc = recv(ctx->s, p_msg, length_to_read, 0);
 
 		if (read_rc == 0) {
 			errno = ECONNRESET;
@@ -662,7 +423,6 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 		/* Display the hex code of each character received */
 		if (ctx->debug) {
 			int i;
-			printf("***** RS485 received:");
 			for (i = 0; i < read_rc; i++)
 				printf("0x%.2X ", p_msg[i]);
 			printf("\n");
@@ -695,6 +455,7 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 				break;
 			case COMPLETE:
 				length_to_read = 0;
+				printf("\n");
 				break;
 			}
 		}
@@ -728,19 +489,51 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 	}
 }
 
-/* Receive the request from a modbus master, requires the socket file descriptor
- etablished with the master device in argument or -1 to use the internal one
- of modbus_t.
+/* Computes the length of the data to write in the request */
+static int compute_data_length(modbus_t *ctx, uint8_t *msg) {
+	int function = msg[TAB_HEADER_LENGTH[ctx->type_com]];
+	int length;
 
- The function shall return the request received and its byte length if
- successul. Otherwise, it shall return -1 and errno is set. */
-int modbus_receive(modbus_t *ctx, int sockfd, uint8_t *req) {
-	if (sockfd != -1) {
-		ctx->s = sockfd;
+	if (function == FC_WRITE_MULTIPLE_COILS
+			|| function == FC_WRITE_MULTIPLE_REGISTERS) {
+		length = msg[TAB_HEADER_LENGTH[ctx->type_com] + 5];
+	} else if (function == FC_REPORT_SLAVE_ID) {
+		length = msg[TAB_HEADER_LENGTH[ctx->type_com] + 1];
+	} else if (function == FC_READ_AND_WRITE_REGISTERS) {
+		length = msg[TAB_HEADER_LENGTH[ctx->type_com] + 9];
+	} else
+		length = 0;
+
+	length += TAB_CHECKSUM_LENGTH[ctx->type_com];
+
+	return length;
+}
+
+/* Computes the header length (to reach the real data) */
+static uint8_t compute_header_length(int function, msg_type_t msg_type) {
+	int length;
+
+	if (msg_type == MSG_CONFIRMATION) {
+		if (function == FC_REPORT_SLAVE_ID) {
+			length = 1;
+		} else {
+			/* Should never happen, the other header lengths are precomputed */
+			abort();
+		}
+	} else /* MSG_INDICATION */{
+		if (function <= FC_WRITE_SINGLE_COIL
+				|| function == FC_WRITE_SINGLE_REGISTER) {
+			length = 4;
+		} else if (function == FC_WRITE_MULTIPLE_COILS
+				|| function == FC_WRITE_MULTIPLE_REGISTERS) {
+			length = 5;
+		} else if (function == FC_READ_AND_WRITE_REGISTERS) {
+			length = 9;
+		} else {
+			length = 0;
+		}
 	}
-
-	/* The length of the request to receive isn't known. */
-	return receive_msg(ctx, MSG_LENGTH_UNDEFINED, req, MSG_INDICATION);
+	return length;
 }
 
 /* Receives the response and checks values (and checksum in RTU).
@@ -1704,7 +1497,81 @@ void modbus_set_timeout_end(modbus_t *ctx, const struct timeval *timeout) {
  }
  */
 
-/* Sets up a serial port for RTU communications */
+// Sets up a serial port for RTU communications
+static int modbus_connect_rtu(modbus_t *ctx) {
+	//int fd;
+
+	speed_t speed;
+	modbus_rtu_t *ctx_rtu = ctx->com;
+
+	    struct termios tty_attributes;
+	    struct serial_rs485 rs485conf;
+
+	    if ((ctx->s = open(ctx_rtu->device, O_RDWR|O_NOCTTY|O_NONBLOCK))<0) {
+	        fprintf (stderr,"Open error on %s\n", strerror(errno));
+	        return -1;
+	    } else {
+	        tcgetattr(ctx->s, &tty_attributes);
+
+	        printf("MODBUS connected\n");
+
+	        // c_cflag
+	        // Enable receiver
+	        tty_attributes.c_cflag |= CREAD;
+
+	        // 8 data bit
+	        tty_attributes.c_cflag |= CS8;
+
+	        // c_iflag
+	        // Ignore framing errors and parity errors.
+	        tty_attributes.c_iflag |= IGNPAR;
+
+	        // c_lflag
+	        // DISABLE canonical mode.
+	        // Disables the special characters EOF, EOL, EOL2,
+	        // ERASE, KILL, LNEXT, REPRINT, STATUS, and WERASE, and buffers
+	        // by lines.
+
+	        // DISABLE this: Echo input characters.
+	        tty_attributes.c_lflag &= ~(ICANON);
+
+	        tty_attributes.c_lflag &= ~(ECHO);
+
+	        // DISABLE this: If ICANON is also set, the ERASE character
+	        // erases the preceding input
+	        // character, and WERASE erases the preceding word.
+	        tty_attributes.c_lflag &= ~(ECHOE);
+
+	        // DISABLE this: When any of the characters INTR, QUIT, SUSP,
+	        // or DSUSP are received, generate the corresponding signal.
+	        tty_attributes.c_lflag &= ~(ISIG);
+
+	        // Minimum number of characters for non-canonical read.
+	        tty_attributes.c_cc[VMIN]=1;
+
+	        // Timeout in deciseconds for non-canonical read.
+	        tty_attributes.c_cc[VTIME]=0;
+
+	        // Set the baud rate
+	        cfsetospeed(&tty_attributes,B9600);
+	        cfsetispeed(&tty_attributes,B9600);
+
+	        tcsetattr(ctx->s, TCSANOW, &tty_attributes);
+
+	        // Set RS485 mode:
+	        rs485conf.flags |= SER_RS485_ENABLED;
+	        rs485conf.delay_rts_before_send = 0;
+
+	        if (ioctl (ctx->s, TIOCSRS485, &rs485conf) < 0) {
+	            printf("ioctl error\n");
+	            return -1;
+	        }
+
+	        return 0;
+}
+}
+
+/*
 static int modbus_connect_rtu(modbus_t *ctx) {
 	struct termios tios;
 	speed_t speed;
@@ -1718,13 +1585,6 @@ static int modbus_connect_rtu(modbus_t *ctx) {
 				ctx_rtu->stop_bit);
 	}
 
-	/* The O_NOCTTY flag tells UNIX that this program doesn't want
-	 to be the "controlling terminal" for that port. If you
-	 don't specify this then any input (such as keyboard abort
-	 signals and so forth) will affect your process
-
-	 Timeouts are ignored in canonical input mode or when the
-	 NDELAY option is set on the file via open or fcntl */
 	ctx->s = open(ctx_rtu->device, O_RDWR | O_NOCTTY | O_NDELAY | O_EXCL);
 	//ctx->s = open(ctx_rtu->device, O_RDWR | O_NOCTTY | O_EXCL);
 	if (ctx->s == -1) {
@@ -1882,6 +1742,7 @@ static int modbus_connect_rtu(modbus_t *ctx) {
 
 	return 0;
 }
+*/
 
 /* Establishes a modbus TCP connection with a Modbus server. */
 static int modbus_connect_tcp(modbus_t *ctx) {
@@ -2216,3 +2077,223 @@ void modbus_set_float(float real, uint16_t *dest) {
 	dest[0] = (uint16_t) i;
 	dest[1] = (uint16_t) (i >> 16);
 }
+
+static void error_print(modbus_t *ctx, const char *context) {
+	if (ctx->debug) {
+		fprintf(stderr, "ERROR %s", modbus_strerror(errno));
+		if (context != NULL) {
+			fprintf(stderr, ": %s\n", context);
+		} else {
+			fprintf(stderr, "\n");
+		}
+	}
+}
+const char *modbus_strerror(int errnum) {
+	switch (errnum) {
+	case EMBXILFUN:
+		return "Illegal function";
+	case EMBXILADD:
+		return "Illegal data address";
+	case EMBXILVAL:
+		return "Illegal data value";
+	case EMBXSFAIL:
+		return "Slave device or server failure";
+	case EMBXACK:
+		return "Acknowledge";
+	case EMBXSBUSY:
+		return "Slave device or server is busy";
+	case EMBXNACK:
+		return "Negative acknowledge";
+	case EMBXMEMPAR:
+		return "Memory parity error";
+	case EMBXGPATH:
+		return "Gateway path unavailable";
+	case EMBXGTAR:
+		return "Target device failed to respond";
+	case EMBBADCRC:
+		return "Invalid CRC";
+	case EMBBADDATA:
+		return "Invalid data";
+	case EMBBADEXC:
+		return "Invalid exception code";
+	case EMBMDATA:
+		return "Too many data";
+	default:
+		return strerror(errnum);
+	}
+}
+
+int modbus_flush(modbus_t *ctx) {
+	int rc;
+
+	if (ctx->type_com == RTU) {
+		rc = tcflush(ctx->s, TCIOFLUSH);
+	} else {
+		do {
+			/* Extract the garbage from the socket */
+			char devnull[MODBUS_MAX_ADU_LENGTH_TCP];
+#if (!HAVE_DECL___CYGWIN__)
+			rc = recv(ctx->s, devnull, MODBUS_MAX_ADU_LENGTH_TCP, MSG_DONTWAIT);
+#else
+			/* On Cygwin, it's a bit more complicated to not wait */
+			fd_set rfds;
+			struct timeval tv;
+
+			tv.tv_sec = 0;
+			tv.tv_usec = 0;
+			FD_ZERO(&rfds);
+			FD_SET(ctx->s, &rfds);
+			rc = select(ctx->s+1, &rfds, NULL, NULL, &tv);
+			if (rc == -1) {
+				return -1;
+			}
+
+			rc = recv(ctx->s, devnull, MODBUS_MAX_ADU_LENGTH_TCP, 0);
+#endif
+			if (ctx->debug && rc != -1) {
+				printf("\n%d bytes flushed\n", rc);
+			}
+		} while (rc > 0);
+	}
+
+	return rc;
+}
+
+/* Computes the length of the expected response */
+static unsigned int compute_response_length(modbus_t *ctx, uint8_t *req) {
+	int length;
+	int offset;
+
+	offset = TAB_HEADER_LENGTH[ctx->type_com];
+
+	switch (req[offset]) {
+	case FC_READ_COILS:
+	case FC_READ_DISCRETE_INPUTS: {
+		/* Header + nb values (code from write_bits) */
+		int nb = (req[offset + 3] << 8) | req[offset + 4];
+		length = 2 + (nb / 8) + ((nb % 8) ? 1 : 0);
+	}
+		break;
+	case FC_READ_AND_WRITE_REGISTERS:
+	case FC_READ_HOLDING_REGISTERS:
+	case FC_READ_INPUT_REGISTERS:
+		/* Header + 2 * nb values */
+		length = 2 + 2 * (req[offset + 3] << 8 | req[offset + 4]);
+		break;
+	case FC_READ_EXCEPTION_STATUS:
+		length = 3;
+		break;
+	case FC_REPORT_SLAVE_ID:
+		/* The response is device specific (the header provides the
+		 length) */
+		return MSG_LENGTH_UNDEFINED;
+	default:
+		length = 5;
+		break;
+	}
+
+	return length + offset + TAB_CHECKSUM_LENGTH[ctx->type_com];
+}
+
+/* Fast CRC */
+static uint16_t crc16(uint8_t *buffer, uint16_t buffer_length) {
+	uint8_t crc_hi = 0xFF; /* high CRC byte initialized */
+	uint8_t crc_lo = 0xFF; /* low CRC byte initialized */
+	unsigned int i; /* will index into CRC lookup */
+
+	/* pass through message buffer */
+	while (buffer_length--) {
+		i = crc_hi ^ *buffer++; /* calculate the CRC  */
+		crc_hi = crc_lo ^ table_crc_hi[i];
+		crc_lo = table_crc_lo[i];
+	}
+
+	return (crc_hi << 8 | crc_lo);
+}
+
+/* The check_crc16 function shall return the message length if the CRC is
+ valid. Otherwise it shall return -1 and set errno to EMBADCRC. */
+static int check_crc16(modbus_t *ctx, uint8_t *msg, const int msg_length) {
+	uint16_t crc_calculated;
+	uint16_t crc_received;
+
+	crc_calculated = crc16(msg, msg_length - 2);
+	crc_received = (msg[msg_length - 2] << 8) | msg[msg_length - 1];
+
+	/* Check CRC of msg */
+	if (crc_calculated == crc_received) {
+		return msg_length;
+	} else {
+		if (ctx->debug) {
+			fprintf(stderr, "ERROR CRC received %0X != CRC calculated %0X\n",
+					crc_received, crc_calculated);
+		}
+		if (ctx->error_recovery) {
+			modbus_flush(ctx);
+		}
+		errno = EMBBADCRC;
+		return -1;
+	}
+}
+
+/////////////////////// TCP /////////////////////////////////////
+/* Builds a TCP request header */
+/////////////////////// TCP /////////////////////////////////////
+/////////////////////// TCP /////////////////////////////////////
+/////////////////////// TCP /////////////////////////////////////
+static int build_request_basis_tcp(int slave, int function, int addr, int nb,
+		uint8_t *req) {
+
+	/* Extract from MODBUS Messaging on TCP/IP Implementation Guide V1.0b
+	 (page 23/46):
+	 The transaction identifier is used to associate the future response
+	 with the request. So, at a time, on a TCP connection, this identifier
+	 must be unique. */
+	static uint16_t t_id = 0;
+
+	/* Transaction ID */
+	if (t_id < UINT16_MAX)
+		t_id++;
+	else
+		t_id = 0;
+	req[0] = t_id >> 8;
+	req[1] = t_id & 0x00ff;
+
+	/* Protocol Modbus */
+	req[2] = 0;
+	req[3] = 0;
+
+	/* Length will be defined later by set_req_length_tcp at offsets 4
+	 and 5 */
+
+	req[6] = slave;
+	req[7] = function;
+	req[8] = addr >> 8;
+	req[9] = addr & 0x00ff;
+	req[10] = nb >> 8;
+	req[11] = nb & 0x00ff;
+
+	return PRESET_REQ_LENGTH_TCP;
+}
+
+/* Builds a TCP response header */
+static int build_response_basis_tcp(sft_t *sft, uint8_t *rsp) {
+	/* Extract from MODBUS Messaging on TCP/IP Implementation
+	 Guide V1.0b (page 23/46):
+	 The transaction identifier is used to associate the future
+	 response with the request. */
+	rsp[0] = sft->t_id >> 8;
+	rsp[1] = sft->t_id & 0x00ff;
+
+	/* Protocol Modbus */
+	rsp[2] = 0;
+	rsp[3] = 0;
+
+	/* Length will be set later by send_msg (4 and 5) */
+
+	rsp[6] = 0xFF;
+	rsp[7] = sft->function;
+
+	return PRESET_RSP_LENGTH_TCP;
+}
+

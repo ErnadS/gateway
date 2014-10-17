@@ -17,5 +17,7 @@ char modBusInterf_start(const char* serialName, unsigned char baudRate,
 char modBusInterf_stop();
 void modBusInterface_notifyAlarm();
 
+void modBusInerf_addNewAlarmMsg(char* msg);
+void modBusInerf_clearAlarmMsg(char* msg);
 
 #endif /* MODBUSINTERF_H_ */
