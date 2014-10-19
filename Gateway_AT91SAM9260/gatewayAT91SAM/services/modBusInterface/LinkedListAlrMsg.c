@@ -1,7 +1,7 @@
 /*
  * deviceLinkedList.c
  *
- *  Created on: 22. apr. 2010
+ *  Created on: 17. okt. 2014
  *      Author: Ernad
  */
 #include "LinkedListAlrMsg.h"
@@ -129,26 +129,6 @@ int alr_LinkedList_getSize(void) {
 	return nAlrListSize;
 }
 
-/*
-int alr_LinkedList_getElementAt(int pos, char* returnMsg) {
-	int i;
-
-	pthread_mutex_lock(&alr_list_mutex); //
-	msgListElement * p_listElement;
-	p_listElement = p_alr_startLinkedList;
-
-	for (i = 0; i < pos; i++) {
-		if (p_listElement == NULL) {
-			pthread_mutex_unlock(&alr_list_mutex); //
-			return -1;
-		}
-		p_listElement = p_listElement->next_device;
-	}
-	memcpy(returnMsg, p_listElement->msg, 24);
-	pthread_mutex_unlock(&alr_list_mutex); //
-	return 0;
-}
-*/
 
 /////////////////////////////////////////////////////////
 // private functions

@@ -20,4 +20,8 @@ void modBusInterface_notifyAlarm();
 void modBusInerf_addNewAlarmMsg(char* msg);
 void modBusInerf_clearAlarmMsg(char* msg);
 
+void modBusInterf_writeLocation(char* location);
+void modBusInterf_writeMAC(char* mac);
+void modBusInterf_writeSwVersion(char* ver);
+
 #endif /* MODBUSINTERF_H_ */

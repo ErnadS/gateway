@@ -12,6 +12,7 @@
 #include "../gwHelpUtility.h"
 #include "../../../config.h"
 #include "../../../can/ObjDict.h"
+#include "../../../services/modBusInterface/modBusInterf.h"
 #include "../../../services/sysTime.h"
 #include "../../../utility/myString.h"
 
@@ -81,6 +82,8 @@ char gwParamSaver_saveToFile() {
 	}
 
 	fputs(m_gwTimeStruct.name_UTF8_format, hFile);
+
+	modBusInterf_writeLocation(m_gwTimeStruct.name_UTF8_format);
 
 	fclose(hFile);
 

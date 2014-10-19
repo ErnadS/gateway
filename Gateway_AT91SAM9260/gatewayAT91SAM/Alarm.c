@@ -264,6 +264,7 @@ void alarm_readAndSendMail(void) {
 			} else { // type = 2 =>  We have error code inside alarmText. Do not try to get real "alarmText" for this kind of alarm
 				printf("3333 %s\n", alarmCompletMsgTxt);
 				sprintf(alarmCompletMsgTxt, "%s", alarms[i].alarmText);
+				modBusInerf_addNewAlarmMsg(alarms[i].alarmText);
 			}
 		}
 		///////////////////////////////////////////////////////////////////////////////////////
@@ -274,22 +275,19 @@ void alarm_readAndSendMail(void) {
 				if (alarms[i].alarmText[0] != 0) { // we have a alarm info (found when alarm occurred)
 					printf("444\n");
 					sprintf(alarmCompletMsgTxt, "CLEARED: %s, error: 0x%04x", alarms[i].alarmText, alarms[i].alarm_errCode);
-					modBusInerf_addNewAlarmMsg(alarms[i].alarmText);
 				} else {  // we don't have a alarm text
 					printf("555\n");
 					sprintf(alarmCompletMsgTxt, "CLEARED unknown alarm, error: 0x%04x", alarms[i].alarm_errCode);
-					modBusInerf_addNewAlarmMsg("CLEARED unknown alarm");
 				}
+				modBusInerf_clearAlarmMsg(alarms[i].alarmText);
 			} else {  // Clear received before sending of the alarm:
 				if (alarms[i].alarmText[0] != 0) {
 					printf("666\n");
 					sprintf(alarmCompletMsgTxt, "%s received and CLEARED, error: 0x%04x", alarms[i].alarmText, alarms[i].alarm_errCode);
-					modBusInerf_addNewAlarmMsg("CLEARED  alarm");
 				}
 				else {
 					printf("777\n");
 					sprintf(alarmCompletMsgTxt, "Alarm received and CLEARED, error: 0x%04x", alarms[i].alarm_errCode);
-					modBusInerf_addNewAlarmMsg("Received and CLEARED");
 				}
 			}
 		}

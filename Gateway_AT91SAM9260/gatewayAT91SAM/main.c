@@ -56,6 +56,8 @@
 #include <syslog.h>
 
 #include "services/modBusInterface/modbus.h"
+#include "services/modBusInterface/modBusInterf.h"
+
 #include "services/myMail.h"
 #include "services/UART/serial.h"
 #include "services/modBusInterface/modbus-private.h"
@@ -69,9 +71,14 @@
 #include "services/myMail.h"
 #include "log/dataLogerLogic.h"
 
+// for MAC address:
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 /////////////////////////////////////////////////////////////////////
-char softwareVersion[] = { "R.3.01" };
+char softwareVersion[] = { "R.3.02" };
 
 ////////////////////////////////////////////////////
 // RELEASE NOTES:
@@ -180,12 +187,10 @@ char softwareVersion[] = { "R.3.01" };
 // Added removing of "DEV_FILE_PATH" when button "factory"
 ///////////////////////////////////////////////
 
-
 //#############################################
 // R.3.00:  09.08.2014
 // Changed to lighttpd server
 ///////////////////////////////////////////////
-
 
 //#############################################
 // R.3.01:  13.10.2014
@@ -194,9 +199,17 @@ char softwareVersion[] = { "R.3.01" };
 // Fixed problem in SDO (can bus API)
 ///////////////////////////////////////////////
 
+//#############################################
+// R.3.02:  18.10.2014
+// Implemented MOD bus.
+// NOTE: kernel 2.6.30 compiled with mod buss (linux/drivers/atmel-serial.c) must be used
+///////////////////////////////////////////////
+
 void * startServer(void *ptr);
 //void * canThreadTask(void *ptr);
 void * runTick(void *ptr);
+
+void getMAC_address(unsigned char MAC_str[13]);
 
 //void CheckReadSDO(CO_Data* d, unsigned char nodeid);
 
@@ -301,15 +314,14 @@ int main(void) {
 
 	// Make a Alarm folder if not exist
 	hFile = fopen(ALARM_FOLDER, "r");
-		if (hFile == NULL) { // FILE NOT EXIST, CREATE
+	if (hFile == NULL) { // FILE NOT EXIST, CREATE
 
-			mkdir(ALARM_FOLDER, 0777);
-			//}
-		}
-		if (hFile != NULL) {
-			fclose(hFile);
-		}
-
+		mkdir(ALARM_FOLDER, 0777);
+		//}
+	}
+	if (hFile != NULL) {
+		fclose(hFile);
+	}
 
 	////////////////////////////////////////////////
 	/// MOD BUS MASTER SIMULATOR
@@ -412,9 +424,23 @@ int main(void) {
 
 	OpenSystemController();
 
-	int nTest = 0;
-	unsigned char result;
-	char answ[60];
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//  MOD BUS INFO
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// write Software Version to MOD bus registers (new in version 3.0.2 from 2014. October)
+	modBusInterf_writeSwVersion(softwareVersion);
+
+	// write Location (Gateway name) to MOD bus registers
+	GW_TIME* gwTimeData = getTimeStruct();
+	modBusInterf_writeLocation(gwTimeData->name_UTF8_format);
+
+	// write MAC address to MOD bus registers
+	unsigned char MacAddr[13];
+	getMAC_address(MacAddr);
+	modBusInterf_writeMAC((char*) MacAddr);
+	////////////////////////////////////////////////////////////////////////////////////////////////
+
+	//int nTest = 0;
 
 	while (1) {
 		/*
@@ -433,7 +459,6 @@ int main(void) {
 		//watchDogInterface_keepAlive(); // TODO: will be used
 		///////////////////////////////////////
 		// if user is logging data
-
 		dataLogerLogic_checkTimers();
 
 		///////////////////////////////////////
@@ -516,9 +541,6 @@ int main(void) {
 					}
 				}
 
-
-
-
 				///////////////////////////////////////////////////////////////////////
 				printf("!!! Removing all logFiles\n");
 				///////////////////////////////////////////////////////////////////////
@@ -544,7 +566,7 @@ int main(void) {
 				///////////////////////////////////////////////////////////////////////
 				printf("!!! Removing gateway parameters\n");
 				///////////////////////////////////////////////////////////////////////
-				remove (GW_PARAM_FILE_PATH);
+				remove(GW_PARAM_FILE_PATH);
 
 				///////////////////////////////////////////////////////////////////////
 				printf("!!! Make default gateway parameters\n");
@@ -585,5 +607,18 @@ void * runTick(void *ptr) {
 		sleep(1);
 	}
 	return NULL;
+}
+
+void getMAC_address(unsigned char MAC_str[13]) {
+#define HWADDR_len 6
+	int s, i;
+	struct ifreq ifr;
+	s = socket(AF_INET, SOCK_DGRAM, 0);
+	strcpy(ifr.ifr_name, "eth0");
+	ioctl(s, SIOCGIFHWADDR, &ifr);
+	for (i = 0; i < HWADDR_len; i++)
+		sprintf(&MAC_str[i * 2], "%02X",
+				((unsigned char*) ifr.ifr_hwaddr.sa_data)[i]);
+	MAC_str[12] = '\0';
 }
 

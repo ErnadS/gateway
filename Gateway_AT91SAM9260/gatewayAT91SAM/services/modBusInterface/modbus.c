@@ -203,18 +203,19 @@ static const int TAB_MAX_ADU_LENGTH[2] = { MODBUS_MAX_ADU_LENGTH_RTU,
         }                                                               \
     }
 
-
 int modbus_flush(modbus_t *ctx);
 const char *modbus_strerror(int errnum);
 static void error_print(modbus_t *ctx, const char *context);
 static uint8_t compute_header_length(int function, msg_type_t msg_type);
 static int compute_data_length(modbus_t *ctx, uint8_t *msg);
 static unsigned int compute_response_length(modbus_t *ctx, uint8_t *req);
-static int build_request_basis_tcp(int slave, int function, int addr, int nb, uint8_t *req);
+static int build_request_basis_tcp(int slave, int function, int addr, int nb,
+		uint8_t *req);
 static int build_response_basis_tcp(sft_t *sft, uint8_t *rsp);
 static uint16_t crc16(uint8_t *buffer, uint16_t buffer_length);
 static int check_crc16(modbus_t *ctx, uint8_t *msg, const int msg_length);
-static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg, msg_type_t msg_type);
+static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
+		msg_type_t msg_type);
 
 /* Builds a RTU request header */
 static int build_request_basis_rtu(int slave, int function, int addr, int nb,
@@ -228,8 +229,6 @@ static int build_request_basis_rtu(int slave, int function, int addr, int nb,
 
 	return PRESET_REQ_LENGTH_RTU;
 }
-
-
 
 static int build_request_basis(modbus_t *ctx, int function, int addr, int nb,
 		uint8_t *req) {
@@ -246,8 +245,6 @@ static int build_response_basis_rtu(sft_t *sft, uint8_t *rsp) {
 
 	return PRESET_RSP_LENGTH_RTU;
 }
-
-
 
 static int build_response_basis(modbus_t *ctx, sft_t *sft, uint8_t *rsp) {
 	if (ctx->type_com == RTU)
@@ -277,11 +274,11 @@ static int send_msg(modbus_t *ctx, uint8_t *req, int req_length) {
 	}
 
 	if (ctx->debug) {
-		printf("RS485 send -> ");
-		for (i = 0; i < req_length; i++) {
-			printf("[%.2X]", req[i]);
-		}
-		printf("\n");
+		/*printf("RS485 send -> ");
+		 for (i = 0; i < req_length; i++) {
+		 printf("[%.2X]", req[i]);
+		 }
+		 printf("\n");*/
 	}
 
 	/* In recovery mode, the write command will be issued until to be
@@ -317,9 +314,8 @@ static int send_msg(modbus_t *ctx, uint8_t *req, int req_length) {
 	return rc;
 }
 
-
 /* Receive the request from a modbus master.
-Returns the request  and its length if (or -1 and errno is set) */
+ Returns the request  and its length if (or -1 and errno is set) */
 int modbus_receive(modbus_t *ctx, int sockfd, uint8_t *req) {
 	if (sockfd != -1) {
 		ctx->s = sockfd;
@@ -328,7 +324,6 @@ int modbus_receive(modbus_t *ctx, int sockfd, uint8_t *req) {
 	/* The length of the request to receive isn't known. */
 	return receive_msg(ctx, MSG_LENGTH_UNDEFINED, req, MSG_INDICATION);
 }
-
 
 /* Waits a response from a modbus server or a request from a modbus client.
  This function blocks if there is no replies (3 timeouts).
@@ -364,8 +359,8 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 		/*if (msg_type == MSG_INDICATION)  printf("Waiting for a indication\n");
 		 else  printf("Waiting for a confirmation\n");
 
-		if (msg_length_computed == MSG_LENGTH_UNDEFINED) printf("...\n");
-		else printf(" (%d bytes)...\n", msg_length_computed); */
+		 if (msg_length_computed == MSG_LENGTH_UNDEFINED) printf("...\n");
+		 else printf(" (%d bytes)...\n", msg_length_computed); */
 	}
 
 	/* Add a file descriptor to the set */
@@ -393,11 +388,11 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 
 	s_rc = 0;
 	WAIT_DATA();
-	printf("***** RS485 received:");
+	//printf("***** RS485 received:");
 	p_msg = msg;
 	while (s_rc) {
 		//if (ctx->type_com == RTU)
-			read_rc = read(ctx->s, p_msg, length_to_read);
+		read_rc = read(ctx->s, p_msg, length_to_read);
 		//else read_rc = recv(ctx->s, p_msg, length_to_read, 0);
 
 		if (read_rc == 0) {
@@ -422,10 +417,10 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 
 		/* Display the hex code of each character received */
 		if (ctx->debug) {
-			int i;
+			/*int i;
 			for (i = 0; i < read_rc; i++)
 				printf("0x%.2X ", p_msg[i]);
-			printf("\n");
+			printf("\n");*/
 		}
 
 		if (msg_length < msg_length_computed) {
@@ -455,7 +450,7 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 				break;
 			case COMPLETE:
 				length_to_read = 0;
-				printf("\n");
+				//printf("\n");
 				break;
 			}
 		}
@@ -475,9 +470,9 @@ static int receive_msg(modbus_t *ctx, int msg_length_computed, uint8_t *msg,
 			s_rc = 0; //FALSE;
 		}
 	}
-
+/*
 	if (ctx->debug)
-		printf("\n");
+		printf("\n");*/
 
 	if (ctx->type_com == RTU) {
 		/* Returns msg_length on success and a negative value on
@@ -1496,82 +1491,87 @@ void modbus_set_timeout_end(modbus_t *ctx, const struct timeval *timeout) {
  return 1;
  }
  */
-
-// Sets up a serial port for RTU communications
-static int modbus_connect_rtu(modbus_t *ctx) {
-	//int fd;
-
-	speed_t speed;
-	modbus_rtu_t *ctx_rtu = ctx->com;
-
-	    struct termios tty_attributes;
-	    struct serial_rs485 rs485conf;
-
-	    if ((ctx->s = open(ctx_rtu->device, O_RDWR|O_NOCTTY|O_NONBLOCK))<0) {
-	        fprintf (stderr,"Open error on %s\n", strerror(errno));
-	        return -1;
-	    } else {
-	        tcgetattr(ctx->s, &tty_attributes);
-
-	        printf("MODBUS connected\n");
-
-	        // c_cflag
-	        // Enable receiver
-	        tty_attributes.c_cflag |= CREAD;
-
-	        // 8 data bit
-	        tty_attributes.c_cflag |= CS8;
-
-	        // c_iflag
-	        // Ignore framing errors and parity errors.
-	        tty_attributes.c_iflag |= IGNPAR;
-
-	        // c_lflag
-	        // DISABLE canonical mode.
-	        // Disables the special characters EOF, EOL, EOL2,
-	        // ERASE, KILL, LNEXT, REPRINT, STATUS, and WERASE, and buffers
-	        // by lines.
-
-	        // DISABLE this: Echo input characters.
-	        tty_attributes.c_lflag &= ~(ICANON);
-
-	        tty_attributes.c_lflag &= ~(ECHO);
-
-	        // DISABLE this: If ICANON is also set, the ERASE character
-	        // erases the preceding input
-	        // character, and WERASE erases the preceding word.
-	        tty_attributes.c_lflag &= ~(ECHOE);
-
-	        // DISABLE this: When any of the characters INTR, QUIT, SUSP,
-	        // or DSUSP are received, generate the corresponding signal.
-	        tty_attributes.c_lflag &= ~(ISIG);
-
-	        // Minimum number of characters for non-canonical read.
-	        tty_attributes.c_cc[VMIN]=1;
-
-	        // Timeout in deciseconds for non-canonical read.
-	        tty_attributes.c_cc[VTIME]=0;
-
-	        // Set the baud rate
-	        cfsetospeed(&tty_attributes,B9600);
-	        cfsetispeed(&tty_attributes,B9600);
-
-	        tcsetattr(ctx->s, TCSANOW, &tty_attributes);
-
-	        // Set RS485 mode:
-	        rs485conf.flags |= SER_RS485_ENABLED;
-	        rs485conf.delay_rts_before_send = 0;
-
-	        if (ioctl (ctx->s, TIOCSRS485, &rs485conf) < 0) {
-	            printf("ioctl error\n");
-	            return -1;
-	        }
-
-	        return 0;
-}
-}
-
+/////////////////////////////////////////////////////////////////////////////////
+// ERNAD, 2014.10.17
+// This is working with linux 2.6.39.4 (which Elreg will not use)
+// Not used for old Kernel
+/////////////////////////////////////////////////////////////////////////////////
 /*
+ // Sets up a serial port for RTU communications
+ static int modbus_connect_rtu(modbus_t *ctx) {
+ //int fd;
+
+ speed_t speed;
+ modbus_rtu_t *ctx_rtu = ctx->com;
+
+ struct termios tty_attributes;
+ struct serial_rs485 rs485conf;
+
+ if ((ctx->s = open(ctx_rtu->device, O_RDWR|O_NOCTTY|O_NONBLOCK))<0) {
+ fprintf (stderr,"Open error on %s\n", strerror(errno));
+ return -1;
+ } else {
+ tcgetattr(ctx->s, &tty_attributes);
+
+ printf("MODBUS connected\n");
+
+ // c_cflag
+ // Enable receiver
+ tty_attributes.c_cflag |= CREAD;
+
+ // 8 data bit
+ tty_attributes.c_cflag |= CS8;
+
+ // c_iflag
+ // Ignore framing errors and parity errors.
+ tty_attributes.c_iflag |= IGNPAR;
+
+ // c_lflag
+ // DISABLE canonical mode.
+ // Disables the special characters EOF, EOL, EOL2,
+ // ERASE, KILL, LNEXT, REPRINT, STATUS, and WERASE, and buffers
+ // by lines.
+
+ // DISABLE this: Echo input characters.
+ tty_attributes.c_lflag &= ~(ICANON);
+
+ tty_attributes.c_lflag &= ~(ECHO);
+
+ // DISABLE this: If ICANON is also set, the ERASE character
+ // erases the preceding input
+ // character, and WERASE erases the preceding word.
+ tty_attributes.c_lflag &= ~(ECHOE);
+
+ // DISABLE this: When any of the characters INTR, QUIT, SUSP,
+ // or DSUSP are received, generate the corresponding signal.
+ tty_attributes.c_lflag &= ~(ISIG);
+
+ // Minimum number of characters for non-canonical read.
+ tty_attributes.c_cc[VMIN]=1;
+
+ // Timeout in deciseconds for non-canonical read.
+ tty_attributes.c_cc[VTIME]=0;
+
+ // Set the baud rate
+ cfsetospeed(&tty_attributes,B9600);
+ cfsetispeed(&tty_attributes,B9600);
+
+ tcsetattr(ctx->s, TCSANOW, &tty_attributes);
+
+ // Set RS485 mode:
+ rs485conf.flags |= SER_RS485_ENABLED;
+ rs485conf.delay_rts_before_send = 0;
+
+ if (ioctl (ctx->s, TIOCSRS485, &rs485conf) < 0) {
+ printf("ioctl error\n");
+ return -1;
+ }
+
+ return 0;
+ }
+ }
+ */
+
 static int modbus_connect_rtu(modbus_t *ctx) {
 	struct termios tios;
 	speed_t speed;
@@ -1603,7 +1603,7 @@ static int modbus_connect_rtu(modbus_t *ctx) {
 
 	// C_ISPEED     Input baud (new interface)
 	// C_OSPEED     Output baud (new interface)
-	 //
+	//
 	switch (ctx_rtu->baud) {
 	case 110:
 		speed = B110;
@@ -1654,8 +1654,8 @@ static int modbus_connect_rtu(modbus_t *ctx) {
 	}
 
 	/// C_CFLAG      Control options
-	 //CLOCAL       Local line - do not change "owner" of port
-	 //CREAD        Enable receiver
+	//CLOCAL       Local line - do not change "owner" of port
+	//CREAD        Enable receiver
 
 	///////////////////////////////////////////////////////////////////
 	tios.c_cflag |= (CREAD | CLOCAL | USE_485); // send flag to linux/drivers/serial/atmel_serial.c
@@ -1666,7 +1666,7 @@ static int modbus_connect_rtu(modbus_t *ctx) {
 
 	//Set data bits (5, 6, 7, 8 bits)
 	// CSIZE        Bit mask for data bits
-	 //
+	//
 	tios.c_cflag &= ~CSIZE;
 	switch (ctx_rtu->data_bit) {
 	case 5:
@@ -1711,10 +1711,8 @@ static int modbus_connect_rtu(modbus_t *ctx) {
 	// This field isn't used on POSIX systems
 	// tios.c_line = 0;
 
-
 	/// Raw input
 	tios.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-
 
 	if (ctx_rtu->parity == 'N') {
 		// None
@@ -1726,11 +1724,8 @@ static int modbus_connect_rtu(modbus_t *ctx) {
 	// Software flow control is disabled *
 	tios.c_iflag &= ~(IXON | IXOFF | IXANY);
 
-
-
 	// Raw ouput
 	tios.c_oflag &= ~OPOST;
-
 
 	/// Unused because we use open with the NDELAY option
 	tios.c_cc[VMIN] = 0;
@@ -1742,7 +1737,6 @@ static int modbus_connect_rtu(modbus_t *ctx) {
 
 	return 0;
 }
-*/
 
 /* Establishes a modbus TCP connection with a Modbus server. */
 static int modbus_connect_tcp(modbus_t *ctx) {

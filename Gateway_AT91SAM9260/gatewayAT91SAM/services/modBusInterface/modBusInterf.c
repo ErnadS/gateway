@@ -37,6 +37,12 @@ void modBusInterf_writeIT_transformOutpVolt(uint16_t newValue);
 void modBusInterf_writeExternAlarmInput_1(uint16_t newValue);
 void modBusInterf_writeExternAlarmInput_2(uint16_t newValue);
 
+// moved to .h file
+/*
+void modBusInterf_writeLocation(char* location);
+void modBusInterf_writeMAC(char* mac);
+void modBusInterf_writeSwVersion(char* ver);
+*/
 void * modBusInterface_modBusThreadTask(void *ptr) {
 	unsigned char hhh[100];
 	int modBusResult;
@@ -240,7 +246,7 @@ char modBusInterf_start(const char* serialName, unsigned char baudRate,
 			"ModBus start. Address: %u, Baud Rate: %u, parity: %c, bytes: %u, stop bytes: %u\n",
 			slaveId, br, par, (bytes + 5), (stopBit + 1));
 	modBusRunThread = 1;
-	mb_mapping = modbus_mapping_new(1, 0, 86, 0); // we have total 86 registers * 2 bytes
+	mb_mapping = modbus_mapping_new(1, 0, 100, 0); // we have total 86 registers * 2 bytes (but starts from reg 10)
 	mb_mapping->tab_bits[0] = 0; // init value: not alarm
 
 	pthread_create(&modBusThread, NULL, modBusInterface_modBusThreadTask,
@@ -327,7 +333,43 @@ void modBusInterf_writeExternAlarmInput_2(uint16_t newValue) {
 	mb_mapping->tab_registers[EXTERN_ALARM_INPUT_2_ADDR] = newValue;
 }
 
-int nCurrentModBusAlarmIndex = 0;
+void modBusInterf_writeLocation(char* location) {
+	memcpy(&(mb_mapping->tab_registers[GW_LOCATION_ID_ADDR]), location, 12);
+}
+
+// Argument is without ":"
+// First 6 chars are "Organisationally Unique Identifier". We are not using tham
+// Last 6 are "Network Interface Contoller Specific" and we are using the same as Serial Number
+void modBusInterf_writeMAC(char* mac) {
+	char netwInteraceMac[6]; //last 6 chars;
+
+	if (strlen(mac) == 12) {
+		netwInteraceMac[0] = mac[6];
+		netwInteraceMac[1] = mac[7];
+
+		netwInteraceMac[2] = mac[8];
+		netwInteraceMac[3] = mac[9];
+
+		netwInteraceMac[4] = mac[10];
+		netwInteraceMac[5] = mac[11];
+
+		memcpy(&(mb_mapping->tab_registers[GW_ETHERN_MAC_ADDR]), netwInteraceMac, 6);
+	}
+}
+
+// argument is e.g. "R.3.02"
+// Remove "R" and first point
+void modBusInterf_writeSwVersion(char* ver) {
+	char numbVer[4];
+	if (strlen(ver) == 6) {
+		numbVer[0] = ver[2];
+		numbVer[1] = ver[3];
+		numbVer[2] = ver[4];
+		numbVer[3] = ver[5];
+		memcpy(&(mb_mapping->tab_registers[GW_SW_VER_ADDR]), numbVer, 4);
+	}
+}
+
 
 
 void modBusInerf_addNewAlarmMsg(char* msg) {
@@ -337,81 +379,12 @@ void modBusInerf_addNewAlarmMsg(char* msg) {
 
 	alr_LinkedList_addElement(msg);
 
-	alr_LinkedList_copyAll(&(mb_mapping->tab_registers[ALARM_REG_1_ADDR]));
-	/*
-	switch (nCurrentModBusAlarmIndex) {
-	case 0:
-		modBusInterf_writeAlarmReg(ALARM_REG_1_ADDR, msg); // Register address 30020 (12 * 2 bytes)
-		break;
-	case 1:
-		modBusInterf_writeAlarmReg(ALARM_REG_2_ADDR, msg); // Register address 30032 (12 * 2 bytes)
-		break;
-	case 2:
-		modBusInterf_writeAlarmReg(ALARM_REG_3_ADDR, msg); // Register address 30044 (12 * 2 bytes)
-		break;
-	case 3:
-		modBusInterf_writeAlarmReg(ALARM_REG_4_ADDR, msg); // Register address 30056 (12 * 2 bytes)
-		break;
-	case 4:
-		modBusInterf_writeAlarmReg(ALARM_REG_5_ADDR, msg); // Register address 30068 (12 * 2 bytes)
-		break;
-	}
-
-	nCurrentModBusAlarmIndex++;
-
-	if (nCurrentModBusAlarmIndex > 4)
-		nCurrentModBusAlarmIndex = 0;*/
+	alr_LinkedList_copyAll((char*)(&(mb_mapping->tab_registers[ALARM_REG_1_ADDR])));
 }
 
 void modBusInerf_clearAlarmMsg(char* msg) {
 
 	alr_LinkedList_removeElement(msg);
-	alr_LinkedList_copyAll(&(mb_mapping->tab_registers[ALARM_REG_1_ADDR]));
-	/*
-	int i;
-
-	for(i = 0; i < 5; i++) {
-		if (strcmp(msg, alrMessage[i]) == 0) {  // found message to clear
-			memset(&alrMessage[i], 0, 24); // clear temp array
-
-			// Clear MOD bus register
-			if (i == 0)
-				memset(&(mb_mapping->tab_registers[ALARM_REG_1_ADDR]), 0, 24);
-			else if (i == 1)
-				memset(&(mb_mapping->tab_registers[ALARM_REG_2_ADDR]), 0, 24);
-			else if (i == 2)
-				memset(&(mb_mapping->tab_registers[ALARM_REG_3_ADDR]), 0, 24);
-			else if (i == 3)
-				memset(&(mb_mapping->tab_registers[ALARM_REG_4_ADDR]), 0, 24);
-			else if (i == 4)
-				memset(&(mb_mapping->tab_registers[ALARM_REG_5_ADDR]), 0, 24);
-		}
-	}*/
+	alr_LinkedList_copyAll((char*)(&(mb_mapping->tab_registers[ALARM_REG_1_ADDR])));
 }
-/////////////// TEXT //////////////////////
-/*
-void modBusInterf_writeAlarmReg(int registerNo, char* msg) {
-	int nLength = strlen(msg);
 
-	int nRest = nLength % 2;
-	nLength -= nRest;
-	int i;
-	uint16_t temp;
-
-	for (i = 0; i < nLength / 2; i++) {
-		temp = msg[2 * i] | msg[2 * i + 1] << 8 ;
-		mb_mapping->tab_registers[registerNo + i] = temp;
-	}
-
-	// if odd, add last char
-	if (nRest > 0) {
-		mb_mapping->tab_registers[registerNo + i] = msg[nLength - 1];
-		i++;
-	}
-
-	// fill rest with zero
-	for (; i < 12; i++) {
-		mb_mapping->tab_registers[registerNo + i] = 0;
-	}
-}
-*/
