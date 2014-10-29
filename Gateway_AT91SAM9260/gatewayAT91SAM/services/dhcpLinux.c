@@ -11,6 +11,8 @@
 #include "dhcpLinux.h"
 #include "../utility/paramUtil.h"
 #include "../utility/myString.h"
+#include "../utility/ip.h"
+#include "modBusInterface/modBusInterf.h"
 
 #include "../config.h"
 #include <unistd.h>
@@ -74,6 +76,8 @@ char dhcpLinux_save(GW_DHCP dhcp) {
 	sleep(1);
 	system("/etc/init.d/networking start");
 
+	ip_updateIpInfo();
+	modBusInterf_writeIpAddress(eth0_ip);
 	return 1;
 }
 

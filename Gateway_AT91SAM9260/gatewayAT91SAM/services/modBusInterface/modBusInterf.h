@@ -23,5 +23,6 @@ void modBusInerf_clearAlarmMsg(char* msg);
 void modBusInterf_writeLocation(char* location);
 void modBusInterf_writeMAC(char* mac);
 void modBusInterf_writeSwVersion(char* ver);
+void modBusInterf_writeIpAddress(char* addr);
 
 #endif /* MODBUSINTERF_H_ */

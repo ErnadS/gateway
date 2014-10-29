@@ -14,6 +14,9 @@
 #include "modbus-private.h"
 
 #include "LinkedListAlrMsg.h"
+#include "../../unitGW/model/gwDevParData.h"
+#include "../../unitGW/utility/gwParConfig/gwParamSaver.h"
+#include "../../utility/ip.h"
 
 modbus_t* mb;
 pthread_t modBusThread;
@@ -37,11 +40,15 @@ void modBusInterf_writeIT_transformOutpVolt(uint16_t newValue);
 void modBusInterf_writeExternAlarmInput_1(uint16_t newValue);
 void modBusInterf_writeExternAlarmInput_2(uint16_t newValue);
 
+extern char softwareVersion[];// used by mod bus
+extern unsigned char MacAddr[]; // used as extern by mod bus
+
 // moved to .h file
 /*
 void modBusInterf_writeLocation(char* location);
 void modBusInterf_writeMAC(char* mac);
 void modBusInterf_writeSwVersion(char* ver);
+void modBusInterf_writeIpAddress(char* addr);
 */
 void * modBusInterface_modBusThreadTask(void *ptr) {
 	unsigned char hhh[100];
@@ -92,10 +99,11 @@ void * modBusInterface_modBusThreadTask(void *ptr) {
 #include "../../can/canInterface.h"
 #include <unistd.h>
 
+int modBusRegistersInitialized = 0;
 ////////////////////////////////////////////////////
 // Uncomment this line for testing of CAN bus
 ////////////////////////////////////////////////////
-// #define CAN_STRES_TEST
+//#define CAN_STRES_TEST
 
 void * modBusInterface_ThreadUpdateRegisters(void *ptr) {
 	unsigned char status;
@@ -104,7 +112,7 @@ void * modBusInterface_ThreadUpdateRegisters(void *ptr) {
 	DEV* device;
 
 	sleep(5);
-	int i;
+	//int i;
 
 	while (modBusRunThread) {
 #ifdef CAN_STRES_TEST
@@ -130,7 +138,19 @@ void * modBusInterface_ThreadUpdateRegisters(void *ptr) {
 				if (status == CAN_OK) {
 					modBusInterf_writeTransformLoad(result_16);
 				}
-			}
+
+				status = canInterface_getUint16((unsigned int*) (&result_16),
+						device->adr, 0x3003, 1);
+				if (status == CAN_OK) {
+					modBusInterf_writeExternAlarmInput_1(result_16);
+				}
+
+				status = canInterface_getUint16((unsigned int*) (&result_16),
+						device->adr, 0x3004, 1);
+				if (status == CAN_OK) {
+					modBusInterf_writeExternAlarmInput_2(result_16);
+				}
+		}
 
 			device = deviceLinkedList_getDeviceByType(SW);
 			if (device != NULL) {
@@ -149,6 +169,12 @@ void * modBusInterface_ThreadUpdateRegisters(void *ptr) {
 						device->adr, 0x3002, 1);
 				if (status == CAN_OK) {
 					modBusInterf_writeSecondary_2_SuppVot(result_16);
+				}
+
+				status = canInterface_getUint16((unsigned int*) (&result_16),
+														device->adr, 0x3003, 1);
+				if (status == CAN_OK) {
+					modBusInterf_writeIT_transformOutpVolt(result_16);
 				}
 			}
 #ifdef CAN_STRES_TEST
@@ -246,8 +272,24 @@ char modBusInterf_start(const char* serialName, unsigned char baudRate,
 			"ModBus start. Address: %u, Baud Rate: %u, parity: %c, bytes: %u, stop bytes: %u\n",
 			slaveId, br, par, (bytes + 5), (stopBit + 1));
 	modBusRunThread = 1;
-	mb_mapping = modbus_mapping_new(1, 0, 100, 0); // we have total 86 registers * 2 bytes (but starts from reg 10)
+	mb_mapping = modbus_mapping_new(1, 0, 110, 0); // we have total 86 registers * 2 bytes (but starts from reg 10) + IP address
 	mb_mapping->tab_bits[0] = 0; // init value: not alarm
+
+	modBusRegistersInitialized = 1;
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//  Set some of registers (sw version, MAC, location)
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	modBusInterf_writeSwVersion(softwareVersion); 	// extern variable in "main.c"
+
+	// write Location (Gateway name) to MOD bus registers
+	GW_TIME* gwTimeData = getTimeStruct();
+	modBusInterf_writeLocation(gwTimeData->name_UTF8_format);
+	modBusInterf_writeMAC((char*) MacAddr);    		// extern variable in "main.c"
+
+	modBusInterf_writeIpAddress(eth0_ip);
+	////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 	pthread_create(&modBusThread, NULL, modBusInterface_modBusThreadTask,
 			(void*) NULL);
@@ -287,15 +329,18 @@ void modBusInterface_notifyAlarm() {
 #define GW_LOCATION_ID_ADDR				79
 #define GW_ETHERN_MAC_ADDR				91
 #define GW_SW_VER_ADDR					94
+#define GW_IP_ADDR						97
 
 // Register address 30011 (2 bytes)
 void modBusInterf_writeInsulationResistance(uint16_t newValue) {
-	mb_mapping->tab_registers[INSULATION_RESISTANCE_ADDR] = newValue; // tab_register is used when received command "FC_READ_HOLDING_REGISTERS"
+	if (modBusRegistersInitialized)
+		mb_mapping->tab_registers[INSULATION_RESISTANCE_ADDR] = newValue; // tab_register is used when received command "FC_READ_HOLDING_REGISTERS"
 }
 
 // Register address 30012 (2 bytes)
 void modBusInterf_writeTransformTemperature(uint16_t newValue) {
-	mb_mapping->tab_registers[TRANSFORM_TEMPER_ADDR] = newValue;
+	if (modBusRegistersInitialized)
+		mb_mapping->tab_registers[TRANSFORM_TEMPER_ADDR] = newValue;
 }
 
 // Register address 30013 (2 bytes)
@@ -310,31 +355,37 @@ void modBusInterf_writePrefferedSuppVolt(uint16_t newValue) {
 
 // Register address 30015 (2 bytes)
 void modBusInterf_writeSecondary_1_SuppVot(uint16_t newValue) {
-	mb_mapping->tab_registers[SECOND_1_SUPPL_VOLT_ADDR] = newValue;
+	if (modBusRegistersInitialized)
+		mb_mapping->tab_registers[SECOND_1_SUPPL_VOLT_ADDR] = newValue;
 }
 
 // Register address 30016 (2 bytes)
 void modBusInterf_writeSecondary_2_SuppVot(uint16_t newValue) {
-	mb_mapping->tab_registers[SECOND_2_SUPPL_VOLT_ADDR] = newValue;
+	if (modBusRegistersInitialized)
+		mb_mapping->tab_registers[SECOND_2_SUPPL_VOLT_ADDR] = newValue;
 }
 
 // Register address 30017 (2 bytes)
 void modBusInterf_writeIT_transformOutpVolt(uint16_t newValue) {
-	mb_mapping->tab_registers[IT_TRANSFORM_OUTP_VOLT_ADDR] = newValue;
+	if (modBusRegistersInitialized)
+		mb_mapping->tab_registers[IT_TRANSFORM_OUTP_VOLT_ADDR] = newValue;
 }
 
 // Register address 30018 (2 bytes but used only 1 bit)
 void modBusInterf_writeExternAlarmInput_1(uint16_t newValue) {
-	mb_mapping->tab_registers[EXTERN_ALARM_INPUT_1_ADDR] = newValue;
+	if (modBusRegistersInitialized)
+		mb_mapping->tab_registers[EXTERN_ALARM_INPUT_1_ADDR] = newValue;
 }
 
 // Register address 30019 (2 bytes but used only 1 bit)
 void modBusInterf_writeExternAlarmInput_2(uint16_t newValue) {
-	mb_mapping->tab_registers[EXTERN_ALARM_INPUT_2_ADDR] = newValue;
+	if (modBusRegistersInitialized)
+		mb_mapping->tab_registers[EXTERN_ALARM_INPUT_2_ADDR] = newValue;
 }
 
 void modBusInterf_writeLocation(char* location) {
-	memcpy(&(mb_mapping->tab_registers[GW_LOCATION_ID_ADDR]), location, 12);
+	if (modBusRegistersInitialized)
+		memcpy(&(mb_mapping->tab_registers[GW_LOCATION_ID_ADDR]), location, 12);
 }
 
 // Argument is without ":"
@@ -343,7 +394,7 @@ void modBusInterf_writeLocation(char* location) {
 void modBusInterf_writeMAC(char* mac) {
 	char netwInteraceMac[6]; //last 6 chars;
 
-	if (strlen(mac) == 12) {
+	if (strlen(mac) == 12 && (modBusRegistersInitialized == 1)) {
 		netwInteraceMac[0] = mac[6];
 		netwInteraceMac[1] = mac[7];
 
@@ -361,7 +412,7 @@ void modBusInterf_writeMAC(char* mac) {
 // Remove "R" and first point
 void modBusInterf_writeSwVersion(char* ver) {
 	char numbVer[4];
-	if (strlen(ver) == 6) {
+	if (strlen(ver) == 6 && (modBusRegistersInitialized)) {
 		numbVer[0] = ver[2];
 		numbVer[1] = ver[3];
 		numbVer[2] = ver[4];
@@ -370,9 +421,18 @@ void modBusInterf_writeSwVersion(char* ver) {
 	}
 }
 
+void modBusInterf_writeIpAddress(char* addr) {
+	if (strlen(addr) > 15)
+		addr[15] = 0;
 
+	strcpy((char*)(&(mb_mapping->tab_registers[GW_IP_ADDR])), addr);
+}
 
 void modBusInerf_addNewAlarmMsg(char* msg) {
+	if (modBusRegistersInitialized == 0) {
+		printf("Cannot add alarm to MOD bus. Not initialized\n");
+		return;
+	}
 	int nLength = strlen(msg);
 	if (nLength > 23)
 		msg[23] = 0;
@@ -383,6 +443,11 @@ void modBusInerf_addNewAlarmMsg(char* msg) {
 }
 
 void modBusInerf_clearAlarmMsg(char* msg) {
+
+	if (modBusRegistersInitialized == 0) {
+		printf("Cannot clear msg in MOD bus. Not initialized\n");
+		return;
+	}
 
 	alr_LinkedList_removeElement(msg);
 	alr_LinkedList_copyAll((char*)(&(mb_mapping->tab_registers[ALARM_REG_1_ADDR])));

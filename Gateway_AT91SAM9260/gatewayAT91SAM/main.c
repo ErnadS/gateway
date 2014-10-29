@@ -78,7 +78,9 @@
 #include <net/if.h>
 
 /////////////////////////////////////////////////////////////////////
-char softwareVersion[] = { "R.3.02" };
+char softwareVersion[] = { "R.3.02" }; // used by mod bus
+
+unsigned char MacAddr[13]; // used as extern by mod bus
 
 ////////////////////////////////////////////////////
 // RELEASE NOTES:
@@ -323,44 +325,12 @@ int main(void) {
 		fclose(hFile);
 	}
 
-	////////////////////////////////////////////////
-	/// MOD BUS MASTER SIMULATOR
-	////////////////////////////////////////////////
-	/*modbus_t* mb;
-	 int rc;
-	 //mb = modbus_new_rtu("/dev/ttyS1", 9600, 'N', 8, 1, 7);
-	 printf("ENO TEST\n");
-	 mb = modbus_new_rtu("/dev/ttyS1", 9600, 'N', 8, 1, 7);
-	 mb->debug = 1;
-	 rc = modbus_connect(mb);
-	 if (rc != 0) {
-	 printf("MODBUS error opening ttyS1\n");
-	 }
-	 unsigned char tab_reg[10];
-	 modbus_set_slave(mb, 2);
-	 while (1) {
-	 sleep(1);
-	 rc = modbus_read_bits(mb, 0, 1, tab_reg);
-	 if (rc <= 0) {
-	 printf("MODBUS read failed\n");
-	 } else {
-	 if (rc == 1) {
-	 if (tab_reg[0] == 0) {
-	 printf("MODBUS: NOT ALARM\n");
-	 } else {
-	 unsigned char newValue = 0;
-	 printf("!!!! MODBUS: ALARM\n");
-	 rc = modbus_write_bits(mb, 0, 1, &newValue);
-	 if (rc == 1)
-	 printf("!!!! MODBUS SENT CLEAR ALARM\n");
-	 else
-	 printf("!!!! MODBUS SENT CLEAR ALARM but received: %u bytes\n", rc);
-	 }
-	 }
-	 }
-	 }
-	 */
-	////////////////////////////////////////////////
+	///////////////////////////////////////////////
+	// MAC address, used by MOD bus
+	///////////////////////////////////////////////
+	getMAC_address(MacAddr);
+	///////////////////////////////////////////////
+
 	////////////////////////////////////////////////
 	// MODBUS INIT
 	////////////////////////////////////////////////
@@ -379,7 +349,8 @@ int main(void) {
 	} else {
 		syslog(LOG_ERR, "ModBus is not activated\n");
 	}
-	///////////////////////////////////////////////
+
+
 
 	devMonitorSaver_updateDevicesFromFile();
 
@@ -424,21 +395,6 @@ int main(void) {
 
 	OpenSystemController();
 
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	//  MOD BUS INFO
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	// write Software Version to MOD bus registers (new in version 3.0.2 from 2014. October)
-	modBusInterf_writeSwVersion(softwareVersion);
-
-	// write Location (Gateway name) to MOD bus registers
-	GW_TIME* gwTimeData = getTimeStruct();
-	modBusInterf_writeLocation(gwTimeData->name_UTF8_format);
-
-	// write MAC address to MOD bus registers
-	unsigned char MacAddr[13];
-	getMAC_address(MacAddr);
-	modBusInterf_writeMAC((char*) MacAddr);
-	////////////////////////////////////////////////////////////////////////////////////////////////
 
 	//int nTest = 0;
 

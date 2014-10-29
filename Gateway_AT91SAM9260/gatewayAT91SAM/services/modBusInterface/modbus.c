@@ -257,7 +257,7 @@ static int build_response_basis(modbus_t *ctx, sft_t *sft, uint8_t *rsp) {
 static int send_msg(modbus_t *ctx, uint8_t *req, int req_length) {
 	int rc;
 	uint16_t s_crc;
-	int i;
+	//int i;
 
 	//setDTR(ctx->s, 1); // set DTR high (Enable Send og disable read)
 
