@@ -1,7 +1,7 @@
 #ifndef SOCKETCLIENT_H_
 #define SOCKETCLIENT_H_
 
-#define MAX_LINE_LENGTH           (10000) //(150000)
+#define MAX_LINE_LENGTH          (15000) //  (10000) //(150000)
 
 int connectToServer(void);
 int sendCookie(int conn_s, char* psw);

@@ -87,14 +87,15 @@ TIMER_HANDLE DelAlarm(TIMER_HANDLE handle)
 {
   /* Quick and dirty. system timer will continue to be trigged, but no action will be preformed. */
   //printf("DelAlarm. handle = %u", handle);
-  pthread_mutex_lock(&canTimer_mutex);
+
+  // pthread_mutex_lock(&canTimer_mutex);
   if(handle != TIMER_NONE)
   {
     if(handle == last_timer_raw)
       last_timer_raw--;
     timers[handle].state = TIMER_FREE;
   }
-  pthread_mutex_unlock(&canTimer_mutex);
+  // pthread_mutex_unlock(&canTimer_mutex);
   return TIMER_NONE;
 }
 

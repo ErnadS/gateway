@@ -103,7 +103,7 @@ int modBusRegistersInitialized = 0;
 ////////////////////////////////////////////////////
 // Uncomment this line for testing of CAN bus
 ////////////////////////////////////////////////////
-//#define CAN_STRES_TEST
+// #define CAN_STRES_TEST
 
 void * modBusInterface_ThreadUpdateRegisters(void *ptr) {
 	unsigned char status;
@@ -112,11 +112,11 @@ void * modBusInterface_ThreadUpdateRegisters(void *ptr) {
 	DEV* device;
 
 	sleep(5);
-	//int i;
+	int i;
 
 	while (modBusRunThread) {
 #ifdef CAN_STRES_TEST
-		for (i = 0; i < 1000; i++) {
+		for (i = 0; i < 10;/*00;*/ i++) {
 #endif
 			device = deviceLinkedList_getDeviceByType(TG);
 

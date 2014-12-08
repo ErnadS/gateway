@@ -49,6 +49,8 @@ unsigned char alarmClearedNodeID;
 
 char bAlarmClearedFlag = 0;
 
+#define CAN_TIMEOUT  320000   // 320000*10us = 3.2ms
+
 
 
 char* canInterface_getHeardBeatPointer(){
@@ -265,7 +267,7 @@ unsigned char canInterface_getUint8(unsigned char* uint8Result,
 		return 3;
 	}
 	int i;
-	for (i = 0; i < 100000; i++) {
+	for (i = 0; i < CAN_TIMEOUT; i++) {
 		if (receivingState == CAN_OK) {
 			*uint8Result = nUint8Result;
 #ifdef DEBUG_CAN
@@ -280,7 +282,8 @@ unsigned char canInterface_getUint8(unsigned char* uint8Result,
 			pthread_mutex_unlock(&can_mutex);
 			return 2; // received ERROR flag
 		}
-		sleep(0);
+		usleep(10);
+		//sleep(0);
 	}
 	closeSDOtransfer(&ObjDict_Data, nCanAddress, SDO_CLIENT);
 	pthread_mutex_unlock(&can_mutex);
@@ -313,19 +316,22 @@ unsigned char canInterface_getUint16(unsigned int* uint16Result,
 	}
 
 	int i;
-	for (i = 0; i < 100000; i++) {
+	for (i = 0; i < CAN_TIMEOUT; i++) {
 		if (receivingState == CAN_OK) {
 			*uint16Result = nUint16Result;
 			pthread_mutex_unlock(&can_mutex);
 			return 0; // SUCCESS
 			//break;
 		} else if (receivingState == CAN_ERROR) {
+			// printf("!!!!!!!!!!!!!!!! EXIT, CALLBACK WITH ERROR\n");
 			pthread_mutex_unlock(&can_mutex);
 			return 2; // received ERROR flag
 		}
-		sleep(0);
+		usleep(10);
+		//sleep(0);
 	}
 	closeSDOtransfer(&ObjDict_Data, nCanAddress, SDO_CLIENT);
+	// printf("!!!!!!!!!!!!!!!! EXIT, CLOSE SDO CAUSED BY ERROR\n");
 	pthread_mutex_unlock(&can_mutex);
 	return 1; //ERROR, not received answer
 }
@@ -355,7 +361,7 @@ unsigned char canInterface_getInt32(long *uint32Result, int nCanAddress,
 		return 3;
 	}
 
-	for (i = 0; i < 1000000; i++) {
+	for (i = 0; i < CAN_TIMEOUT; i++) {
 		if (receivingState == CAN_OK) {
 			*uint32Result = nInt32Result;
 			pthread_mutex_unlock(&can_mutex);
@@ -364,7 +370,8 @@ unsigned char canInterface_getInt32(long *uint32Result, int nCanAddress,
 			pthread_mutex_unlock(&can_mutex);
 			return CAN_ERROR; // Received error flag
 		}
-		sleep(0);
+		usleep(10);
+		//sleep(0);
 	}
 	closeSDOtransfer(&ObjDict_Data, nCanAddress, SDO_CLIENT);
 	fprintf(stderr, "ERROR: getInt32 timeout, nCanAddress = %u, index = %u, sub = %u\n",
@@ -398,7 +405,7 @@ unsigned char canInterface_getString(char* stringResult, int nCanAddress,
 				result, nCanAddress, nIndex, nSubindex);
 		return 3;
 	}
-	for (i = 0; i < 1000000; i++) {
+	for (i = 0; i < CAN_TIMEOUT; i++) {
 		if (receivingState == CAN_OK) {
 #ifdef DEBUG_CAN
 			printf("Received, before convert: 0x%02x 0x%02x 0x%02x 0x%02x\n", strResult[0], strResult[1],strResult[2],strResult[3]);
@@ -415,7 +422,8 @@ unsigned char canInterface_getString(char* stringResult, int nCanAddress,
 			pthread_mutex_unlock(&can_mutex);
 			return 2; // detected error on CAN bus
 		}
-		sleep(0);
+		usleep(10);
+		//sleep(0);
 	}
 	closeSDOtransfer(&ObjDict_Data, nCanAddress, SDO_CLIENT);
 	fprintf(stderr, "ERROR: getString timeout\n");
@@ -437,12 +445,13 @@ unsigned char canInterface_writeUint8(char nValue, unsigned char nCanAddress,
 
 	writeNetworkDictCallBack(&ObjDict_Data, nCanAddress, index, subIndex, 1,
 			uint8, (void *) &nValue, checkWriteSDO);
-	for (i = 0; i < 1000000; i++) {
+	for (i = 0; i < CAN_TIMEOUT; i++) {
 		if (bWriteFinished > 0) {
 			pthread_mutex_unlock(&can_mutex);
 			return (bWriteFinished - 1); // SUCCESS or Error
 		}
-		sleep(0);
+		usleep(10);
+		//sleep(0);
 	}
 	closeSDOtransfer(&ObjDict_Data, nCanAddress, SDO_CLIENT);
 	pthread_mutex_unlock(&can_mutex);
@@ -464,12 +473,13 @@ unsigned char canInterface_writeUint16(unsigned int nValue,
 	writeNetworkDictCallBack(&ObjDict_Data, nCanAddress, index, subIndex, 2,
 			uint16, (void *) &nValue, checkWriteSDO);
 
-	for (i = 0; i < 1000000; i++) {
+	for (i = 0; i < CAN_TIMEOUT; i++) {
 		if (bWriteFinished > 0) {
 			pthread_mutex_unlock(&can_mutex);
 			return (bWriteFinished - 1); // SUCCESS or Error
 		}
-		sleep(0);
+		usleep(10);
+		//sleep(0);
 	}
 	closeSDOtransfer(&ObjDict_Data, nCanAddress, SDO_CLIENT);
 	pthread_mutex_unlock(&can_mutex);
@@ -491,12 +501,13 @@ unsigned char canInterface_writeInt32(long nValue, unsigned char nCanAddress,
 	writeNetworkDictCallBack(&ObjDict_Data, nCanAddress, index, subIndex, 4,
 			uint32, (void *) &nValue, checkWriteSDO);
 
-	for (i = 0; i < 1000000; i++) {
+	for (i = 0; i < CAN_TIMEOUT; i++) {
 		if (bWriteFinished > 0) {
 			pthread_mutex_unlock(&can_mutex);
 			return (bWriteFinished - 1); // SUCCESS or Error
 		}
-		sleep(0);
+		usleep(10);
+		//sleep(0);
 	}
 	closeSDOtransfer(&ObjDict_Data, nCanAddress, SDO_CLIENT);
 	pthread_mutex_unlock(&can_mutex);
@@ -532,13 +543,14 @@ unsigned char canInterface_writeString(char* strValue,
 		return 1;
 	}
 
-	for (i = 0; i < 1000000; i++) {
+	for (i = 0; i < CAN_TIMEOUT; i++) {
 		if (bWriteFinished > 0) {
 			free(newString);
 			pthread_mutex_unlock(&can_mutex);
 			return (bWriteFinished - 1); // SUCCESS or Error
 		}
-		sleep(0);
+		usleep(10);
+		//sleep(0);
 	}
 
 	closeSDOtransfer(&ObjDict_Data, nCanAddress, SDO_CLIENT);
@@ -609,6 +621,7 @@ void canInterface_OnSdoReadUint8(CO_Data* d, unsigned char nodeid) {
 #endif
 		receivingState = CAN_OK;
 	}
+
 	closeSDOtransfer(&ObjDict_Data, nodeid, SDO_CLIENT);
 }
 
@@ -627,7 +640,8 @@ void canInterface_OnSdoReadInt16(CO_Data* d, unsigned char nodeid) {
 #endif
 		receivingState = CAN_OK;
 	}
-	closeSDOtransfer(&ObjDict_Data, nodeid, SDO_CLIENT);
+
+    closeSDOtransfer(&ObjDict_Data, nodeid, SDO_CLIENT);
 }
 
 void canInterface_OnSdoReadInt32(CO_Data* d, unsigned char nodeid) {
@@ -646,6 +660,7 @@ void canInterface_OnSdoReadInt32(CO_Data* d, unsigned char nodeid) {
 #endif
 		receivingState = CAN_OK;
 	}
+
 	closeSDOtransfer(&ObjDict_Data, nodeid, SDO_CLIENT);
 }
 

@@ -26,11 +26,12 @@ void initTimer(void) {
 	setTimer(0xFFFF);
 }
 unsigned long last_time_set = 0;
-long timerPeriod = -1;
+// long timerPeriod = -1;
+unsigned long timerPeriod = 0;
 
 void * runTimerThread(void *ptr) {
 	struct timeval currentTime;
-	long newTime;
+	unsigned long newTime; // ES: was long
 	gettimeofday(&currentTime, NULL);
 	last_time_set = (currentTime.tv_sec * 1000000 + currentTime.tv_usec) / 8;
 
@@ -42,10 +43,15 @@ void * runTimerThread(void *ptr) {
 		gettimeofday(&currentTime, NULL);
 		newTime = (currentTime.tv_sec * 1000000 + currentTime.tv_usec) / 8;
 
-
+		unsigned long diff;
 	//	usleep(100);
 		if (timerPeriod > 0) {
-			if ((newTime - last_time_set) > timerPeriod) {
+			if (newTime >= last_time_set)
+				diff = newTime - last_time_set;
+			else
+				diff = 0xffffffff - last_time_set + newTime; // overrun
+
+			if (diff > timerPeriod) {
 				last_time_set = newTime;
 				pthread_mutex_unlock(&timer_mutex);
 				TimeDispatch();
@@ -91,7 +97,11 @@ TIMEVAL getElapsedTime(void) {
 	gettimeofday(&currentTime, NULL);
 	newTime = (currentTime.tv_sec * 1000000 + currentTime.tv_usec) / 8;
 	//printf("getElapsedTime %lu\n", (newTime - last_time_set));
-	tempTime = newTime - last_time_set;
+	if (newTime > last_time_set)
+		tempTime = newTime - last_time_set;
+	else
+		tempTime = newTime + (0xffffffff - last_time_set); // overrun
+
 	pthread_mutex_unlock(&timer_mutex);
 	return tempTime;
 }

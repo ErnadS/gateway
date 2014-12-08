@@ -21,7 +21,7 @@
 #include "../../services/mail.h"
 #include "../../services/myMail.h"
 
-#define MAX_ALARM_FILE_SIZE 200
+#define MAX_ALARM_FILE_SIZE  70 // 200  (200 is more than 15000 bytes. If wants 200, change max size in cgiCommonData and socketClientPipe.
 
 int gwAlarmLogUtility_getLogLines(char* alarmMsgBuff, int nLines,
 		int nFileIndex, int nLineIndex);
@@ -180,7 +180,7 @@ int removedirectoryrecursively(const char *dirname)
         return 1;
 }
 
-
+/*
 
 int fineNextFreeIndex(char * fileNameStart) {
 	DIR *dp;
@@ -210,6 +210,44 @@ int fineNextFreeIndex(char * fileNameStart) {
 
 	} else
 		printf("Couldn't open the directory: %s\n", ALARM_FOLDER);
+
+	return nCurrentIndex;
+}*/
+
+int fineNextFreeIndex(char * fileNameStart) {
+	int nCurrentIndex = 0;
+
+	char firsteFile[200];
+
+	struct dirent **namelist;
+	int n;
+	int i = 0;
+
+	n = scandir(ALARM_FOLDER, &namelist, 0, alphasort); //"."
+	if (n < 0)
+		perror("scandir");
+	else {
+		if (n < 3) {
+			return 0;  // Found only 2 files. The firste file is ".", second is ".."
+		}
+
+		sprintf(firsteFile, "%s%s", ALARM_FOLDER, namelist[2]->d_name);
+
+		while (i < n) {
+			if (nameStartsWith(namelist[i]->d_name, fileNameStart) == 0) {
+				nCurrentIndex = atoi(&(namelist[i]->d_name[21])) + 1;
+			}
+
+			free(namelist[i]);
+			i++;
+		}
+		free(namelist);
+
+		if (n >= MAX_ALARM_FILE_SIZE) {
+			printf("deleting: %s\n", firsteFile);
+			remove(firsteFile); // delete oldest file
+		}
+	}
 
 	return nCurrentIndex;
 }
